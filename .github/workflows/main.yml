@@ -13,7 +13,7 @@ jobs:
     - uses: actions/checkout@master
     - name: Build & Test
       run: |
-        sudo apt-get install -y libxcb-xfixes0-dev libxcb-shape0-dev
+        sudo apt-get install -y libxcb-xfixes0-dev libxcb-shape0-dev libasound2-dev
         rustup update ${{ matrix.rust }} && rustup default ${{ matrix.rust }}
         cargo test 
 
@@ -32,6 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - name: Install libs
+        run: |
+          sudo apt-get install -y libxcb-xfixes0-dev libxcb-shape0-dev libasound2-dev
       - id: component
         uses: actions-rs/components-nightly@v1
         with:
