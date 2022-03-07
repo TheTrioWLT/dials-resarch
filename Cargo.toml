@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cpal = "0.13"
 hound = "3.4"
+rodio = "0.15.0"
