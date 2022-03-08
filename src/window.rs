@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use glium::glutin;
 
 //Uses the glium and glutin to make window.
@@ -32,14 +34,48 @@ pub fn draw_gui() {
             let mut quit = false;
 
             let needs_repaint = egui_glium.run(&display, |egui_ctx| {
-                let main_area = egui::Pos2::new(25.0, 25.0);
+                //Making a window inside the window, it cannot go away from the parent window
+                //
+                //Gotta figure out why the circle i make in this window, stays in the main window
+                //:)
+                egui::Window::new("Window").show(egui_ctx, |ui| {
+                    ui.with_layout(egui::Layout::right_to_left(), |shape| {
+                        shape.label("Hello");
+                        let pos_circle = egui::Pos2::new(40.0, 40.0);
+                        let circle = egui::epaint::CircleShape::filled(
+                            pos_circle,
+                            20.0,
+                            egui::Color32::DARK_RED,
+                        );
 
-                egui::Area::new("Program")
-                    .fixed_pos(main_area)
-                    .enabled(false)
-                    .show(egui_ctx, |ui| {
-                        ui.label("Main Program");
+                        shape.painter().add(egui::Shape::Circle(circle));
                     });
+                });
+
+                //Main area
+                egui::CentralPanel::default().show(egui_ctx, |ui| {
+                    ui.label("Yolo");
+                    ui.horizontal(|ui| {
+                        ui.button("This is an empty button").clicked();
+                        ui.button("Another Button, Whaaaaat").clicked();
+                    });
+                    ui.vertical(|ui| {
+                        ui.button("vertical Button Babyyyy").clicked();
+                        ui.add_space(33.0);
+                        ui.set_width(50.0);
+                        ui.button("FAT Vertical Button 2, BABYYYY").clicked();
+                    });
+                });
+
+                //egui::SidePanel::left("left").show(egui_ctx, |ui| {
+                //    ui.label("Left Program");
+                //});
+                //egui::SidePanel::right("right").show(egui_ctx, |ui| {
+                //    ui.label("Right Program");
+                //});
+                //egui::CentralPanel::default().show(egui_ctx, |ui| {
+                //    ui.label("Main Program");
+                //});
             });
 
             *control_flow = if quit {
