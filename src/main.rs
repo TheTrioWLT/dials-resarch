@@ -1,3 +1,3 @@
 fn main() {
-    dials_research::audio::play();
+    dials_research::audio::play().unwrap();
 }
