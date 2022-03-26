@@ -38,19 +38,20 @@ pub fn draw_gui() {
                 //
                 //Gotta figure out why the circle i make in this window, stays in the main window
                 //:)
-                egui::Window::new("Window").show(egui_ctx, |ui| {
-                    ui.with_layout(egui::Layout::right_to_left(), |shape| {
-                        shape.label("Hello");
-                        let pos_circle = egui::Pos2::new(40.0, 40.0);
-                        let circle = egui::epaint::CircleShape::filled(
-                            pos_circle,
-                            20.0,
-                            egui::Color32::DARK_RED,
-                        );
+                //egui::Window::new("Window").show(egui_ctx, |ui| {
+                //    let rect = egui::Rect {
+                //        min: egui::Pos2 { x: 30.0, y: 30.0 },
+                //        max: egui::Pos2 { x: 80.0, y: 80.0 },
+                //    };
+                //    let pos_circle = egui::Pos2::new(80.0, 40.0);
+                //    let circle = egui::epaint::CircleShape::filled(
+                //        pos_circle,
+                //        20.0,
+                //        egui::Color32::DARK_RED,
+                //    );
 
-                        shape.painter().add(egui::Shape::Circle(circle));
-                    });
-                });
+                //    ui.painter().add(egui::Shape::Circle(circle));
+                //});
 
                 //Main area
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
@@ -65,6 +66,12 @@ pub fn draw_gui() {
                         ui.set_width(50.0);
                         ui.button("FAT Vertical Button 2, BABYYYY").clicked();
                     });
+
+                    let pos_circle = egui::Pos2::new(200.0, 150.0);
+                    let circle =
+                        egui::epaint::CircleShape::filled(pos_circle, 50.0, egui::Color32::BLUE);
+
+                    ui.painter().add(egui::Shape::Circle(circle));
                 });
 
                 //egui::SidePanel::left("left").show(egui_ctx, |ui| {
