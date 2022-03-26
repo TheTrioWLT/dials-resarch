@@ -1,2 +1,1 @@
-pub struct A {
-}
+pub struct A {}
