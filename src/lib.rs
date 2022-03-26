@@ -3,10 +3,19 @@ pub mod config;
 
 pub struct Config {
     pub dials: Vec<Dial>,
-    pub z_ball_dir_change_min: f64,
-    pub z_ball_dir_change_max: f64,
-    pub y_ball_speed_min: f64,
-    pub y_ball_speed_max: f64,
+    pub balls: Vec<Ball>,
+    pub active_ball: Option<String>,
+}
+
+pub struct Ball {
+    pub name: String,
+    /// The action that this ball takes.
+    ///
+    /// Can be one of `random_direction`, `random_speed`, or `random_direction_change`
+    pub action: String,
+
+    /// How quickly a ball configured for `random_direction_change` changes speed.
+    pub random_direction_change_time: Option<f64>,
 }
 
 pub struct Dial {
