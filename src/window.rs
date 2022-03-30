@@ -10,7 +10,7 @@ fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Disp
             width: 800.0,
             height: 600.0,
         })
-        .with_title("egui_glium example");
+        .with_title("Research Program");
 
     let context_builder = glutin::ContextBuilder::new()
         .with_depth_buffer(0)
@@ -25,7 +25,6 @@ fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Disp
 pub fn draw_gui() {
     let event_loop = glutin::event_loop::EventLoop::with_user_event();
     let display = create_display(&event_loop);
-
     //Initiates the display area
     let mut egui_glium = egui_glium::EguiGlium::new(&display);
 
@@ -55,23 +54,29 @@ pub fn draw_gui() {
 
                 //Main area
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
-                    ui.label("Yolo");
-                    ui.horizontal(|ui| {
-                        ui.button("This is an empty button").clicked();
-                        ui.button("Another Button, Whaaaaat").clicked();
-                    });
-                    ui.vertical(|ui| {
-                        ui.button("vertical Button Babyyyy").clicked();
-                        ui.add_space(33.0);
-                        ui.set_width(50.0);
-                        ui.button("FAT Vertical Button 2, BABYYYY").clicked();
-                    });
+                    ui.centered_and_justified(|ui| {
+                        let mut dials_list: Vec<egui::epaint::CircleShape> = Vec::new();
+                        let dial_number = 3;
 
-                    let pos_circle = egui::Pos2::new(200.0, 150.0);
-                    let circle =
-                        egui::epaint::CircleShape::filled(pos_circle, 50.0, egui::Color32::BLUE);
+                        for i in 0..dial_number {
+                            let posx = ui.min_rect().min.x + (-100.0 + 100.0 * i as f32);
+                            let posy = ui.min_rect().min.y + 200.0;
 
-                    ui.painter().add(egui::Shape::Circle(circle));
+                            let circe_pos = egui::pos2(posx, posy);
+
+                            let circle = egui::epaint::CircleShape::filled(
+                                circe_pos,
+                                50.0,
+                                egui::Color32::BLUE,
+                            );
+
+                            dials_list.push(circle);
+                        }
+
+                        for circle in dials_list.iter() {
+                            ui.painter().add(egui::Shape::Circle(*circle));
+                        }
+                    });
                 });
 
                 //egui::SidePanel::left("left").show(egui_ctx, |ui| {
