@@ -1,5 +1,6 @@
 use std::ops::Add;
 
+use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
 use glium::glutin;
 
 //Uses the glium and glutin to make window.
@@ -28,6 +29,8 @@ pub fn draw_gui() {
 
     //Initiates the display area
     let mut egui_glium = egui_glium::EguiGlium::new(&display);
+
+    let mut dial_angle: f32 = 0.0;
 
     event_loop.run(move |event, _, control_flow| {
         let mut redraw = || {
@@ -67,11 +70,75 @@ pub fn draw_gui() {
                         ui.button("FAT Vertical Button 2, BABYYYY").clicked();
                     });
 
-                    let pos_circle = egui::Pos2::new(200.0, 150.0);
-                    let circle =
-                        egui::epaint::CircleShape::filled(pos_circle, 50.0, egui::Color32::BLUE);
+                    let painter = ui.painter();
 
-                    ui.painter().add(egui::Shape::Circle(circle));
+                    let window_rect = egui_ctx.available_rect();
+
+                    let sadlfjaso = window_rect.left_bottom();
+
+                    let dial_y_offset_percent = 0.03;
+                    let dial_y_offset = dial_y_offset_percent * window_rect.height();
+                    let dial_height_percent = 0.3;
+                    let dial_total_max_width_percent = 0.6;
+                    let num_dials = 20;
+                    let dial_max_radius = (window_rect.width() * dial_total_max_width_percent)
+                        / (num_dials as f32 * 2.0);
+
+                    let dial_width_percent = 1.0 / (num_dials as f32 + 1.0);
+
+                    let mut dial_radius = dial_height_percent * window_rect.height() / 2.0;
+
+                    if dial_radius > dial_max_radius {
+                        dial_radius = dial_max_radius;
+                    }
+
+                    for dial in 1..=num_dials {
+                        let dial_pos_x = dial as f32 * dial_width_percent * window_rect.width();
+                        let dial_center = sadlfjaso
+                            + Pos2::new(dial_pos_x, -dial_radius - dial_y_offset).to_vec2();
+
+                        painter.add(egui::Shape::Circle(CircleShape::stroke(
+                            dial_center,
+                            dial_radius,
+                            Stroke::new(2.0, Color32::LIGHT_GREEN),
+                        )));
+
+                        let ticks = 16;
+                        let tick_radius = 2.0;
+                        let tick_inset = tick_radius * 2.0;
+                        let tick_inset_radius = dial_radius - tick_inset;
+                        let dist = std::f32::consts::TAU / ticks as f32;
+
+                        for i in 0..ticks {
+                            let angle = i as f32 * dist;
+                            let x = tick_inset_radius * f32::cos(angle);
+                            let y = tick_inset_radius * f32::sin(angle);
+                            let position = Pos2::new(x + dial_center.x, y + dial_center.y);
+
+                            painter.add(egui::Shape::Circle(CircleShape::filled(
+                                position,
+                                tick_radius,
+                                Color32::LIGHT_YELLOW,
+                            )));
+                        }
+
+                        let dial_angle_radians = dial_angle.to_radians();
+                        let end_position = Pos2::new(
+                            dial_center.x + tick_inset_radius * f32::cos(dial_angle_radians),
+                            dial_center.y + tick_inset_radius * f32::sin(dial_angle_radians),
+                        );
+
+                        painter.add(egui::Shape::LineSegment {
+                            points: [dial_center, end_position],
+                            stroke: Stroke::new(2.0, Color32::WHITE),
+                        });
+                    }
+
+                    dial_angle += 1.0;
+
+                    if dial_angle >= 360.0 {
+                        dial_angle = dial_angle - 360.0;
+                    }
                 });
 
                 //egui::SidePanel::left("left").show(egui_ctx, |ui| {
@@ -128,8 +195,10 @@ pub fn draw_gui() {
 
                 display.gl_window().window().request_redraw(); // TODO: ask egui if the events warrants a repaint instead
             }
-
-            _ => (),
+            _ => {
+                // Not efficient :)
+                display.gl_window().window().request_redraw();
+            }
         }
     });
 }
