@@ -12,7 +12,7 @@ fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Disp
             width: 800.0,
             height: 600.0,
         })
-        .with_title("egui_glium example");
+        .with_title("Dials Research Program");
 
     let context_builder = glutin::ContextBuilder::new()
         .with_depth_buffer(0)
@@ -43,39 +43,8 @@ pub fn draw_gui() {
             let mut quit = false;
 
             let needs_repaint = egui_glium.run(&display, |egui_ctx| {
-                //Making a window inside the window, it cannot go away from the parent window
-                //
-                //Gotta figure out why the circle i make in this window, stays in the main window
-                //:)
-                //egui::Window::new("Window").show(egui_ctx, |ui| {
-                //    let rect = egui::Rect {
-                //        min: egui::Pos2 { x: 30.0, y: 30.0 },
-                //        max: egui::Pos2 { x: 80.0, y: 80.0 },
-                //    };
-                //    let pos_circle = egui::Pos2::new(80.0, 40.0);
-                //    let circle = egui::epaint::CircleShape::filled(
-                //        pos_circle,
-                //        20.0,
-                //        egui::Color32::DARK_RED,
-                //    );
-
-                //    ui.painter().add(egui::Shape::Circle(circle));
-                //});
-
-                //Main area
+                // Main area
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
-                    ui.label("Yolo");
-                    ui.horizontal(|ui| {
-                        ui.button("This is an empty button").clicked();
-                        ui.button("Another Button, Whaaaaat").clicked();
-                    });
-                    ui.vertical(|ui| {
-                        ui.button("vertical Button Babyyyy").clicked();
-                        ui.add_space(33.0);
-                        ui.set_width(50.0);
-                        ui.button("FAT Vertical Button 2, BABYYYY").clicked();
-                    });
-
                     let painter = ui.painter();
 
                     let window_rect = egui_ctx.available_rect();
@@ -107,19 +76,9 @@ pub fn draw_gui() {
                     for dial in dials.iter_mut() {
                         dial.draw(painter, &dial_draw_data);
 
-                        dial.increment_value(1.0);
+                        dial.increment_value(10);
                     }
                 });
-
-                //egui::SidePanel::left("left").show(egui_ctx, |ui| {
-                //    ui.label("Left Program");
-                //});
-                //egui::SidePanel::right("right").show(egui_ctx, |ui| {
-                //    ui.label("Right Program");
-                //});
-                //egui::CentralPanel::default().show(egui_ctx, |ui| {
-                //    ui.label("Main Program");
-                //});
             });
 
             *control_flow = if quit {
@@ -165,10 +124,10 @@ pub fn draw_gui() {
 
                 display.gl_window().window().request_redraw(); // TODO: ask egui if the events warrants a repaint instead
             }
-            _ => {
-                // Not efficient :)
-                display.gl_window().window().request_redraw();
-            }
+            _ => {}
         }
+ 
+        // Not efficient :)
+        display.gl_window().window().request_redraw();
     });
 }
