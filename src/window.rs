@@ -1,7 +1,14 @@
 use std::ops::Add;
 
-use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
+use egui::{
+    epaint::{CircleShape, RectShape},
+    Color32, Pos2, Rect, Stroke,
+};
 use glium::glutin;
+
+use crate::projectile::Projectile;
+use crate::projectile::ProjectileDrawData;
+use rand::Rng;
 
 //Uses the glium and glutin to make window.
 fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Display {
@@ -32,6 +39,7 @@ pub fn draw_gui() {
 
     let mut dial_angle: f32 = 0.0;
 
+    let mut projectile = Projectile::new(70.0, 50.0, 5.0);
     event_loop.run(move |event, _, control_flow| {
         let mut redraw = || {
             let mut quit = false;
@@ -57,19 +65,9 @@ pub fn draw_gui() {
                 //});
 
                 //Main area
-                egui::CentralPanel::default().show(egui_ctx, |ui| {
-                    ui.label("Yolo");
-                    ui.horizontal(|ui| {
-                        ui.button("This is an empty button").clicked();
-                        ui.button("Another Button, Whaaaaat").clicked();
-                    });
-                    ui.vertical(|ui| {
-                        ui.button("vertical Button Babyyyy").clicked();
-                        ui.add_space(33.0);
-                        ui.set_width(50.0);
-                        ui.button("FAT Vertical Button 2, BABYYYY").clicked();
-                    });
 
+                egui::CentralPanel::default().show(egui_ctx, |ui| {
+                    tracking_frame(egui_ctx, ui, &mut projectile);
                     let painter = ui.painter();
 
                     let window_rect = egui_ctx.available_rect();
@@ -201,4 +199,33 @@ pub fn draw_gui() {
             }
         }
     });
+}
+
+fn tracking_frame(egui_ctx: &egui::Context, ui: &mut egui::Ui, projectile: &mut Projectile) {
+    ui.label("Yolo");
+    let painter = ui.painter();
+
+    let window_rect = egui_ctx.available_rect();
+
+    let radius = 5.0;
+
+    let rec_top_left = egui::Pos2::new(window_rect.width() * 0.20, 0.0);
+    let rec_bottom_right = egui::Pos2::new(window_rect.width() * 0.80, window_rect.height() * 0.70);
+
+    let frame = egui::Rect::from_min_max(rec_top_left, rec_bottom_right);
+
+    let stroke = egui::epaint::Stroke::new(1.0, egui::Color32::WHITE);
+
+    let rect = egui::epaint::RectShape::stroke(frame, 0.0, stroke);
+
+    let draw_data = ProjectileDrawData {
+        radius,
+        width_pos: frame.center(),
+        height_pos: frame.center_top(),
+        origin: rec_top_left,
+        max_range: rec_bottom_right,
+    };
+
+    projectile.draw(&painter, &draw_data);
+    painter.add(egui::Shape::Rect(rect));
 }
