@@ -1,6 +1,7 @@
 use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
 use glium::glutin;
 
+use crate::frame::Frame;
 use crate::projectile::Projectile;
 use crate::projectile::ProjectileDrawData;
 
@@ -63,7 +64,8 @@ pub fn draw_gui() {
                 //Main area
 
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
-                    tracking_frame(egui_ctx, ui, &mut projectile, &mut started);
+                    let frame = tracking_frame(egui_ctx, ui, &mut projectile, &mut started);
+                    crosshair(&frame, ui);
                     let painter = ui.painter();
 
                     let window_rect = egui_ctx.available_rect();
@@ -204,7 +206,7 @@ fn tracking_frame(
     ui: &mut egui::Ui,
     projectile: &mut Projectile,
     started: &mut bool,
-) {
+) -> egui::Rect {
     ui.label("Yolo");
 
     let painter = ui.painter();
@@ -225,6 +227,7 @@ fn tracking_frame(
     } else {
         projectile.draw(&painter, &draw_data);
     }
+    frame
 }
 
 //This function should be in its own file
@@ -245,4 +248,32 @@ fn draw_frame(egui_ctx: &egui::Context, painter: &egui::Painter) -> egui::Rect {
     painter.add(egui::Shape::Rect(rect));
 
     frame
+}
+
+fn crosshair(frame: &egui::Rect, ui: &mut egui::Ui) {
+    let painter = ui.painter();
+    let stroke = egui::Stroke::new(1.0, egui::Color32::WHITE);
+
+    let v_top_pos = egui::Pos2::new(
+        frame.center().x,
+        (frame.center().y - frame.height() * 0.05).abs(),
+    );
+    let v_bot_pos = egui::Pos2::new(frame.center().x, frame.center().y + frame.height() * 0.05);
+
+    painter.add(egui::Shape::LineSegment {
+        points: [v_top_pos, v_bot_pos],
+        stroke,
+    });
+
+    let h_left_pos = egui::Pos2::new(
+        (frame.center().x - frame.width() * 0.05).abs(),
+        frame.center().y,
+    );
+
+    let h_right_pos = egui::Pos2::new(frame.center().x + frame.width() * 0.05, frame.center().y);
+
+    painter.add(egui::Shape::LineSegment {
+        points: [h_left_pos, h_right_pos],
+        stroke,
+    });
 }
