@@ -1,3 +1,5 @@
+use std::thread;
+
 use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
 
 pub const DIAL_Y_OFFSET_PERCENT: f32 = 0.03;
@@ -27,19 +29,25 @@ pub struct DialDrawData {
     pub dial_width_percent: f32,
     pub window_width: f32,
     pub window_left_bottom: Pos2,
+    pub delta_time: f32,
 }
 
 pub struct Dial {
-    value: u32,
+    value: f32,
     dial_num: u32,
+    rate: f32,
 }
 
 impl Dial {
-    pub fn new(dial_num: u32) -> Self {
-        Self { value: 0, dial_num }
+    pub fn new(dial_num: u32, rate: f32) -> Self {
+        Self {
+            value: 0.0,
+            dial_num,
+            rate,
+        }
     }
 
-    pub fn draw(&self, painter: &egui::Painter, draw_data: &DialDrawData) {
+    pub fn draw(&mut self, painter: &egui::Painter, draw_data: &DialDrawData) {
         let dial_pos_x =
             self.dial_num as f32 * draw_data.dial_width_percent * draw_data.window_width;
         let dial_center = draw_data.window_left_bottom
@@ -82,7 +90,7 @@ impl Dial {
         }
 
         // Draw the needle
-        let needle_angle_radians = (((self.value % (DIAL_NEEDLE_MAX)) as f32
+        let needle_angle_radians = (((self.value % (DIAL_NEEDLE_MAX as f32)) as f32
             / DIAL_NEEDLE_MAX as f32)
             * std::f32::consts::TAU)
             + DIAL_ANGLE_OFFSET;
@@ -96,14 +104,24 @@ impl Dial {
             points: [dial_center, end_position],
             stroke: Stroke::new(2.0, DIAL_NEEDLE_COLOR),
         });
+
+        // Increment the value using the rate and the delta time
+        self.increment_value(draw_data.delta_time * self.rate);
     }
 
-    pub fn set_value(&mut self, value: u32) {
-        self.value = value % DIAL_MAX_VALUE;
+    fn on_out_of_range(&self) {
+        thread::spawn(|| crate::audio::play().unwrap());
     }
 
-    pub fn increment_value(&mut self, increment: u32) {
-        self.value = (self.value + increment) % DIAL_MAX_VALUE;
-        dbg!(self.value);
+    pub fn set_value(&mut self, value: f32) {
+        self.value = value % DIAL_MAX_VALUE as f32;
+    }
+
+    pub fn increment_value(&mut self, increment: f32) {
+        if (self.value + increment) / DIAL_MAX_VALUE as f32 >= 1.0 {
+            self.on_out_of_range();
+        }
+
+        self.value = (self.value + increment) % DIAL_MAX_VALUE as f32;
     }
 }
