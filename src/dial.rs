@@ -36,10 +36,7 @@ pub struct Dial {
 
 impl Dial {
     pub fn new(dial_num: u32) -> Self {
-        Self {
-            value: 0,
-            dial_num,
-        }
+        Self { value: 0, dial_num }
     }
 
     pub fn draw(&self, painter: &egui::Painter, draw_data: &DialDrawData) {
@@ -76,13 +73,19 @@ impl Dial {
             let y = draw_data.radius * f32::sin(angle);
             let position = Pos2::new(x + dial_center.x, y + dial_center.y);
 
-            painter.add(egui::Shape::LineSegment { points: [last_vertex_pos, position], stroke: Stroke::new(DIAL_BAR_WIDTH, DIAL_BAR_COLOR) });
+            painter.add(egui::Shape::LineSegment {
+                points: [last_vertex_pos, position],
+                stroke: Stroke::new(DIAL_BAR_WIDTH, DIAL_BAR_COLOR),
+            });
 
             last_vertex_pos = position;
         }
 
         // Draw the needle
-        let needle_angle_radians = (((self.value % (DIAL_NEEDLE_MAX)) as f32 / DIAL_NEEDLE_MAX as f32) * std::f32::consts::TAU) + DIAL_ANGLE_OFFSET;
+        let needle_angle_radians = (((self.value % (DIAL_NEEDLE_MAX)) as f32
+            / DIAL_NEEDLE_MAX as f32)
+            * std::f32::consts::TAU)
+            + DIAL_ANGLE_OFFSET;
         let needle_inset_radius = draw_data.radius - DIAL_NEEDLE_INSET;
         let end_position = Pos2::new(
             dial_center.x + needle_inset_radius * f32::cos(needle_angle_radians),

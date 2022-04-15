@@ -126,7 +126,7 @@ pub fn draw_gui() {
             }
             _ => {}
         }
- 
+
         // Not efficient :)
         display.gl_window().window().request_redraw();
     });
