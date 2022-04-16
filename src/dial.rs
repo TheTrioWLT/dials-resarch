@@ -104,6 +104,5 @@ impl Dial {
 
     pub fn increment_value(&mut self, increment: u32) {
         self.value = (self.value + increment) % DIAL_MAX_VALUE;
-        dbg!(self.value);
     }
 }
