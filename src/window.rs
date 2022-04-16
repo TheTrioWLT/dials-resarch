@@ -1,3 +1,6 @@
+use std::time::Instant;
+
+use egui::{epaint::RectShape, Color32};
 use glium::glutin;
 use glutin::event::{ElementState, VirtualKeyCode};
 
@@ -7,6 +10,8 @@ use crate::{
     },
     frame::Frame,
 };
+
+const WINDOW_COLOR: Color32 = Color32::from_rgb(27, 27, 27);
 
 //Uses the glium and glutin to make window.
 fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Display {
@@ -39,8 +44,11 @@ pub fn draw_gui() {
     let mut dials = Vec::new();
 
     for i in 0..num_dials {
-        dials.push(Dial::new(i + 1));
+        let dial = Dial::new(i + 1, (i + 1) as f32 * 100.0);
+        dials.push(dial);
     }
+
+    let mut last_frame = Instant::now();
 
     let mut frame = Frame::new();
 
@@ -60,14 +68,28 @@ pub fn draw_gui() {
 
             let needs_repaint = egui_glium.run(&display, |egui_ctx| {
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
+                    // Make this work continously on Windows
+                    egui_ctx.request_repaint();
+
                     let painter = ui.painter();
+                    let now = Instant::now();
+                    let delta_time = now.duration_since(last_frame).as_secs_f32();
+                    last_frame = now;
 
                     let window_rect = egui_ctx.available_rect();
                     let window_height = window_rect.height();
                     let window_width = window_rect.width();
 
+                    // ----------- Draw the window background -----------
+                    painter.add(egui::Shape::Rect(RectShape::filled(
+                        window_rect,
+                        egui::Rounding::none(),
+                        WINDOW_COLOR,
+                    )));
+
                     let window_left_bottom = window_rect.left_bottom();
 
+                    // ----------------- Draw the dials -----------------
                     let dial_y_offset = DIAL_Y_OFFSET_PERCENT * window_height;
                     let dial_max_radius =
                         (window_width * DIALS_MAX_WIDTH_PERCENT) / (num_dials as f32 * 2.0);
@@ -86,16 +108,15 @@ pub fn draw_gui() {
                         dial_width_percent,
                         window_width,
                         window_left_bottom,
+                        delta_time,
                     };
 
                     for dial in dials.iter_mut() {
                         dial.draw(painter, &dial_draw_data);
-
-                        dial.increment_value(10);
                     }
 
                     frame.update(&input_axes);
-                    frame.draw(painter, &window_rect, 0.12);
+                    frame.draw(painter, &window_rect, delta_time);
                 });
             });
 
@@ -109,11 +130,7 @@ pub fn draw_gui() {
             };
 
             {
-                use glium::Surface as _;
                 let mut target = display.draw();
-
-                let color = egui::Rgba::from_rgb(0.1, 0.3, 0.2);
-                target.clear_color(color[0], color[1], color[2], color[3]);
 
                 // draw things behind egui here
 
@@ -191,8 +208,5 @@ pub fn draw_gui() {
             }
             _ => {}
         }
-
-        // Not efficient :)
-        display.gl_window().window().request_redraw();
     });
 }

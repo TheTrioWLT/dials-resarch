@@ -9,7 +9,7 @@ const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 
 // TODO: Move to be read from the configuration file!
 // This is specified in the normalized vector position units per second
-const BALL_START_VELOCITY: Pos2 = Pos2::new(0.05, 0.07);
+const BALL_START_VELOCITY: Pos2 = Pos2::new(0.25, 0.35);
 
 pub struct Ball {
     pos: Pos2,

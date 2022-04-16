@@ -1,3 +1,5 @@
+use std::thread;
+
 use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
 
 pub const DIAL_Y_OFFSET_PERCENT: f32 = 0.03;
@@ -15,11 +17,11 @@ const DIAL_TICK_COLOR: Color32 = Color32::WHITE;
 const DIAL_BAR_COLOR: Color32 = Color32::YELLOW;
 const DIAL_NEEDLE_COLOR: Color32 = Color32::YELLOW;
 
-const DIAL_MAX_VALUE: u32 = 10000;
+const DIAL_MAX_VALUE: f32 = 10000.0;
 // const DIAL_BAR_TICK_VALUE: u32 = 1000;
-const DIAL_NEEDLE_TICK_VALUE: u32 = 100;
+const DIAL_NEEDLE_TICK_VALUE: f32 = 100.0;
 
-const DIAL_NEEDLE_MAX: u32 = DIAL_NEEDLE_TICK_VALUE * NUM_DIAL_TICKS;
+const DIAL_NEEDLE_MAX: f32 = DIAL_NEEDLE_TICK_VALUE * NUM_DIAL_TICKS as f32;
 
 pub struct DialDrawData {
     pub y_offset: f32,
@@ -27,19 +29,25 @@ pub struct DialDrawData {
     pub dial_width_percent: f32,
     pub window_width: f32,
     pub window_left_bottom: Pos2,
+    pub delta_time: f32,
 }
 
 pub struct Dial {
-    value: u32,
+    value: f32,
     dial_num: u32,
+    rate: f32,
 }
 
 impl Dial {
-    pub fn new(dial_num: u32) -> Self {
-        Self { value: 0, dial_num }
+    pub fn new(dial_num: u32, rate: f32) -> Self {
+        Self {
+            value: 0.0,
+            dial_num,
+            rate,
+        }
     }
 
-    pub fn draw(&self, painter: &egui::Painter, draw_data: &DialDrawData) {
+    pub fn draw(&mut self, painter: &egui::Painter, draw_data: &DialDrawData) {
         let dial_pos_x =
             self.dial_num as f32 * draw_data.dial_width_percent * draw_data.window_width;
         let dial_center = draw_data.window_left_bottom
@@ -82,7 +90,7 @@ impl Dial {
         }
 
         // Draw the needle
-        let needle_angle_radians = (((self.value % (DIAL_NEEDLE_MAX)) as f32
+        let needle_angle_radians = (((self.value % (DIAL_NEEDLE_MAX as f32)) as f32
             / DIAL_NEEDLE_MAX as f32)
             * std::f32::consts::TAU)
             + DIAL_ANGLE_OFFSET;
@@ -96,13 +104,24 @@ impl Dial {
             points: [dial_center, end_position],
             stroke: Stroke::new(2.0, DIAL_NEEDLE_COLOR),
         });
+
+        // Increment the value using the rate and the delta time
+        self.increment_value(draw_data.delta_time * self.rate);
     }
 
-    pub fn set_value(&mut self, value: u32) {
-        self.value = value % DIAL_MAX_VALUE;
+    fn on_out_of_range(&self) {
+        thread::spawn(|| crate::audio::play().unwrap());
     }
 
-    pub fn increment_value(&mut self, increment: u32) {
-        self.value = (self.value + increment) % DIAL_MAX_VALUE;
+    fn increment_value(&mut self, increment: f32) {
+        // Currently here we implement the alarms as when the dial maxes out
+        // TODO: Implement actual in/out of ranges
+        let added = self.value + increment;
+        if (added) >= DIAL_MAX_VALUE {
+            self.value = added % DIAL_MAX_VALUE;
+            self.on_out_of_range();
+        } else {
+            self.value = added;
+        }
     }
 }
