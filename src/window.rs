@@ -51,11 +51,9 @@ pub fn draw_gui() {
     let mut input_y = egui::Pos2::new(0.0, 0.0);
     let mut input_x = egui::Pos2::new(0.0, 0.0);
 
-    // This is the corrected version of the inputs
-    let mut input_axes = egui::Pos2::new(0.0, 0.0);
-
     event_loop.run(move |event, _, control_flow| {
-        input_axes = egui::Pos2::new(input_x.y - input_x.x, input_y.x - input_y.y);
+        // This is the corrected version of the input_y and input_x
+        let input_axes = egui::Pos2::new(input_x.y - input_x.x, input_y.x - input_y.y);
 
         let mut redraw = || {
             let quit = false;
@@ -96,7 +94,8 @@ pub fn draw_gui() {
                         dial.increment_value(10);
                     }
 
-                    frame.draw(painter, &window_rect);
+                    frame.update(&input_axes);
+                    frame.draw(painter, &window_rect, 0.12);
                 });
             });
 

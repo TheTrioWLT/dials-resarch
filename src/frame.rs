@@ -15,6 +15,7 @@ const CROSSHAIR_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 const CROSSHAIR_SIZE_PERCENT: f32 = 0.125;
 const CROSSHAIR_STROKE: f32 = 1.0;
 const CROSSHAIR_COLOR: Color32 = Color32::WHITE;
+const CROSSHAIR_RATE: f32 = 0.02;
 
 pub struct Crosshair {
     pos: egui::Pos2,
@@ -36,11 +37,11 @@ impl Crosshair {
     }
 
     pub fn increment_x(&mut self, x: f32) {
-        self.pos.x += x;
+        self.pos.x = (self.pos.x + x).clamp(-1.0, 1.0);
     }
 
     pub fn increment_y(&mut self, y: f32) {
-        self.pos.y += y;
+        self.pos.y = (self.pos.y + y).clamp(-1.0, 1.0);
     }
 
     pub fn position(&mut self) -> Pos2 {
@@ -50,52 +51,25 @@ impl Crosshair {
     pub fn draw(&self, painter: &egui::Painter, frame_rect: &egui::Rect) {
         let frame_center = frame_rect.center();
         // The frame is guaranteed to be square
-        let crosshair_half_size = CROSSHAIR_SIZE_PERCENT * frame_rect.height() / 2.0;
+        let frame_width = frame_rect.width();
+        let half_frame_width = frame_width / 2.0;
+        let crosshair_half_size = CROSSHAIR_SIZE_PERCENT * frame_width / 2.0;
 
-        let v_top_pos = Pos2::new(frame_center.x, frame_center.y - crosshair_half_size);
-        let v_bottom_pos = Pos2::new(frame_center.x, frame_center.y + crosshair_half_size);
+        let crosshair_center = Pos2::new(
+            frame_center.x + half_frame_width * self.pos.x,
+            frame_center.y + half_frame_width * self.pos.y,
+        );
 
-        let h_left_pos = Pos2::new(frame_center.x - crosshair_half_size, frame_center.y);
-        let h_right_pos = Pos2::new(frame_center.x + crosshair_half_size, frame_center.y);
+        let v_top_pos = Pos2::new(crosshair_center.x, crosshair_center.y - crosshair_half_size);
+        let v_bottom_pos = Pos2::new(crosshair_center.x, crosshair_center.y + crosshair_half_size);
+
+        let h_left_pos = Pos2::new(crosshair_center.x - crosshair_half_size, crosshair_center.y);
+        let h_right_pos = Pos2::new(crosshair_center.x + crosshair_half_size, crosshair_center.y);
 
         let stroke = egui::Stroke::new(CROSSHAIR_STROKE, CROSSHAIR_COLOR);
 
         painter.line_segment([v_top_pos, v_bottom_pos], stroke);
         painter.line_segment([h_left_pos, h_right_pos], stroke);
-
-        /*
-        // Making the lines for the crosshair
-        //
-        // Needs fixing, this way of constructing is not ideal
-        let v_top_pos = egui::Pos2::new(
-            frame.center().x,
-            (frame.center().y - frame.height() * V_CROSSHAIR_OFFSET).abs(),
-        );
-        let v_bot_pos = egui::Pos2::new(
-            frame.center().x,
-            frame.center().y + frame.height() * V_CROSSHAIR_OFFSET,
-        );
-
-        crosshair.push(egui::Shape::LineSegment {
-            points: [v_top_pos, v_bot_pos],
-            stroke,
-        });
-
-        let h_left_pos = egui::Pos2::new(
-            (frame.center().x - frame.width() * H_CROSSHAIR_OFFSET).abs(),
-            frame.center().y,
-        );
-
-        let h_right_pos = egui::Pos2::new(
-            frame.center().x + frame.width() * H_CROSSHAIR_OFFSET,
-            frame.center().y,
-        );
-
-        crosshair.push(egui::Shape::LineSegment {
-            points: [h_left_pos, h_right_pos],
-            stroke,
-        });
-        */
     }
 }
 
@@ -119,8 +93,14 @@ impl Frame {
         }
     }
 
+    pub fn update(&mut self, input_axes: &egui::Pos2) {
+        self.crosshair.increment_x(input_axes.x * CROSSHAIR_RATE);
+        // The - here is to correct for the window's y being down and not up
+        self.crosshair.increment_y(-input_axes.y * CROSSHAIR_RATE);
+    }
+
     /// Draws the frame
-    pub fn draw(&mut self, painter: &egui::Painter, window_rect: &egui::Rect) {
+    pub fn draw(&mut self, painter: &egui::Painter, window_rect: &egui::Rect, delta_time: f32) {
         let window_center_top = window_rect.center_top();
 
         let window_width = window_rect.width();
@@ -156,6 +136,7 @@ impl Frame {
         painter.add(egui::Shape::Rect(frame_rect_shape));
 
         self.crosshair.draw(painter, &frame_rect);
+        self.ball.draw(painter, &frame_rect, delta_time);
     }
 }
 

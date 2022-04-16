@@ -5,14 +5,11 @@ const BALL_RADIUS: f32 = 5.0;
 
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
-const MIN_VALUE: f32 = 0.0;
-const MAX_VALUE: f32 = 1.0;
-
 const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 
 // TODO: Move to be read from the configuration file!
 // This is specified in the normalized vector position units per second
-const BALL_START_VELOCITY: Pos2 = Pos2::new(0.005, 0.007);
+const BALL_START_VELOCITY: Pos2 = Pos2::new(0.05, 0.07);
 
 pub struct Ball {
     pos: Pos2,
@@ -41,30 +38,36 @@ impl Ball {
     /// The center of the screen would be the (screen_width / 2, screen_height / 2) this can be
     /// translated to (0.0, 0.0).
     ///
-    pub fn draw(&mut self, painter: &egui::Painter, frame: &egui::Rect, delta_time: f32) {
-        let screen_x = frame.min.x + (self.pos.x * frame.width());
-        let screen_y = frame.min.y + (self.pos.y * frame.height());
+    pub fn draw(&mut self, painter: &egui::Painter, frame_rect: &egui::Rect, delta_time: f32) {
+        let frame_center = frame_rect.center();
+        // The frame is guaranteed to be square
+        let frame_width = frame_rect.width();
+        let half_frame_width = frame_width / 2.0;
 
-        //The addition or substraction inside the logic is so the circle does not use the center as
-        //the x or y location. This way the circle would not go thru some of the borders.
-        if (self.velocity.x + 0.01) >= MAX_VALUE {
+        let ball_normalized_radius = BALL_RADIUS / half_frame_width;
+
+        let ball_center = Pos2::new(
+            frame_center.x + self.pos.x * half_frame_width,
+            frame_center.y + self.pos.y * half_frame_width,
+        );
+
+        // The addition or substraction inside the logic is so the circle does not use the center as
+        // the x or y location. This way the circle would not go thru some of the borders.
+        if (self.pos.x + ball_normalized_radius) >= 1.0 {
             //Check bound collition given a frame
             self.velocity.x *= -1.0;
-        }
-        if (self.velocity.x - 0.01) <= MIN_VALUE {
+        } else if (self.pos.x - ball_normalized_radius) <= -1.0 {
             self.velocity.x *= -1.0;
         }
 
-        if (self.velocity.y - 0.01) <= MIN_VALUE {
+        if (self.pos.y - ball_normalized_radius) <= -1.0 {
             self.velocity.y *= -1.0;
-        }
-
-        if (self.velocity.y + 0.01) >= MAX_VALUE {
+        } else if (self.pos.y + ball_normalized_radius) >= 1.0 {
             self.velocity.y *= -1.0;
         }
 
         painter.add(egui::Shape::Circle(CircleShape::filled(
-            Pos2::new(screen_x, screen_y),
+            ball_center,
             BALL_RADIUS,
             BALL_COLOR,
         )));
