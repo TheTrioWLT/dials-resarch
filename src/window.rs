@@ -2,9 +2,13 @@ use std::time::Instant;
 
 use egui::{epaint::RectShape, Color32};
 use glium::glutin;
+use glutin::event::{ElementState, VirtualKeyCode};
 
-use crate::dial::{
-    Dial, DialDrawData, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT, DIAL_Y_OFFSET_PERCENT,
+use crate::{
+    dial::{
+        Dial, DialDrawData, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT, DIAL_Y_OFFSET_PERCENT,
+    },
+    frame::Frame,
 };
 
 const WINDOW_COLOR: Color32 = Color32::from_rgb(27, 27, 27);
@@ -45,13 +49,24 @@ pub fn draw_gui() {
     }
 
     let mut last_frame = Instant::now();
+  
+    let mut frame = Frame::new();
+
+    // These are being used sort of like input axes, but these are Pos2(positive, negative) in that
+    // in the case of arrow keys, you can press down both the up and down arrows at the same time.
+    // So if that were true, the input_y would be Pos2(1.0, 1.0) and we would do math on both axes
+    // combined.
+    let mut input_y = egui::Pos2::new(0.0, 0.0);
+    let mut input_x = egui::Pos2::new(0.0, 0.0);
 
     event_loop.run(move |event, _, control_flow| {
+        // This is the corrected version of the input_y and input_x
+        let input_axes = egui::Pos2::new(input_x.y - input_x.x, input_y.x - input_y.y);
+
         let mut redraw = || {
-            let mut quit = false;
+            let quit = false;
 
             let needs_repaint = egui_glium.run(&display, |egui_ctx| {
-                // Main area
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
                     let painter = ui.painter();
                     let now = Instant::now();
@@ -96,6 +111,9 @@ pub fn draw_gui() {
                     for dial in dials.iter_mut() {
                         dial.draw(painter, &dial_draw_data);
                     }
+
+                    frame.update(&input_axes);
+                    frame.draw(painter, &window_rect, 0.12);
                 });
             });
 
@@ -130,8 +148,55 @@ pub fn draw_gui() {
 
             glutin::event::Event::WindowEvent { event, .. } => {
                 use glutin::event::WindowEvent;
-                if matches!(event, WindowEvent::CloseRequested | WindowEvent::Destroyed) {
-                    *control_flow = glutin::event_loop::ControlFlow::Exit;
+                match event {
+                    WindowEvent::CloseRequested | WindowEvent::Destroyed => {
+                        *control_flow = glutin::event_loop::ControlFlow::Exit;
+                    }
+                    WindowEvent::KeyboardInput {
+                        input:
+                            glutin::event::KeyboardInput {
+                                virtual_keycode: Some(keycode),
+                                state,
+                                ..
+                            },
+                        ..
+                    } => {
+                        // Highly inefficient but good enough for testing
+                        if state == ElementState::Pressed {
+                            match keycode {
+                                VirtualKeyCode::Up => {
+                                    input_y.x = 1.0;
+                                }
+                                VirtualKeyCode::Down => {
+                                    input_y.y = 1.0;
+                                }
+                                VirtualKeyCode::Left => {
+                                    input_x.x = 1.0;
+                                }
+                                VirtualKeyCode::Right => {
+                                    input_x.y = 1.0;
+                                }
+                                _ => {}
+                            }
+                        } else {
+                            match keycode {
+                                VirtualKeyCode::Up => {
+                                    input_y.x = 0.0;
+                                }
+                                VirtualKeyCode::Down => {
+                                    input_y.y = 0.0;
+                                }
+                                VirtualKeyCode::Left => {
+                                    input_x.x = 0.0;
+                                }
+                                VirtualKeyCode::Right => {
+                                    input_x.y = 0.0;
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    _ => {}
                 }
 
                 egui_glium.on_event(&event);

@@ -113,15 +113,7 @@ impl Dial {
         thread::spawn(|| crate::audio::play().unwrap());
     }
 
-    pub fn set_value(&mut self, value: f32) {
-        self.value = value % DIAL_MAX_VALUE as f32;
-    }
-
-    pub fn increment_value(&mut self, increment: f32) {
-        if (self.value + increment) / DIAL_MAX_VALUE as f32 >= 1.0 {
-            self.on_out_of_range();
-        }
-
-        self.value = (self.value + increment) % DIAL_MAX_VALUE as f32;
+    pub fn increment_value(&mut self, increment: u32) {
+        self.value = (self.value + increment) % DIAL_MAX_VALUE;
     }
 }
