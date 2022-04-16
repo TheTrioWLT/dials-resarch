@@ -15,7 +15,7 @@ const CROSSHAIR_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 const CROSSHAIR_SIZE_PERCENT: f32 = 0.125;
 const CROSSHAIR_STROKE: f32 = 1.0;
 const CROSSHAIR_COLOR: Color32 = Color32::WHITE;
-const CROSSHAIR_RATE: f32 = 0.02;
+const CROSSHAIR_RATE: f32 = 0.40;
 
 pub struct Crosshair {
     pos: egui::Pos2,
@@ -56,8 +56,8 @@ impl Crosshair {
         let crosshair_half_size = CROSSHAIR_SIZE_PERCENT * frame_width / 2.0;
 
         let crosshair_center = Pos2::new(
-            frame_center.x + half_frame_width * self.pos.x,
-            frame_center.y + half_frame_width * self.pos.y,
+            frame_center.x + (half_frame_width * self.pos.x),
+            frame_center.y + (half_frame_width * self.pos.y),
         );
 
         let v_top_pos = Pos2::new(crosshair_center.x, crosshair_center.y - crosshair_half_size);
@@ -93,10 +93,12 @@ impl Frame {
         }
     }
 
-    pub fn update(&mut self, input_axes: &egui::Pos2) {
-        self.crosshair.increment_x(input_axes.x * CROSSHAIR_RATE);
+    pub fn update(&mut self, input_axes: &egui::Pos2, delta_time: f32) {
+        self.crosshair
+            .increment_x((input_axes.x * delta_time) * CROSSHAIR_RATE);
         // The - here is to correct for the window's y being down and not up
-        self.crosshair.increment_y(-input_axes.y * CROSSHAIR_RATE);
+        self.crosshair
+            .increment_y((-input_axes.y * delta_time) * CROSSHAIR_RATE);
     }
 
     /// Draws the frame
