@@ -2,16 +2,13 @@ use egui::epaint::CircleShape;
 use egui::Pos2;
 
 const RADIUS: f32 = 5.0;
-const X_VEL: f32 = 3.0;
-const Y_VEL: f32 = 5.0;
+const X_VEL: f32 = 0.005;
+const Y_VEL: f32 = 0.007;
 
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
-pub struct ProjectileDrawData {
-    pub frame: egui::Rect,
-    pub width_pos: Pos2,
-    pub height_pos: Pos2,
-}
+const MIN_VALUE: f32 = 0.0;
+const MAX_VALUE: f32 = 1.0;
 
 pub struct Projectile {
     pub x: f32,
@@ -23,54 +20,72 @@ pub struct Projectile {
 }
 
 impl Projectile {
-    pub fn new(x: f32, y: f32, radius: f32) -> Self {
-        Projectile {
-            x,
-            y,
-            radius,
-            fill_color: BALL_COLOR,
-            dx: X_VEL,
-            dy: Y_VEL,
-        }
-    }
+    //pub fn new(x: f32, y: f32, radius: f32) -> Self {
+    //    Projectile {
+    //        x,
+    //        y,
+    //        radius,
+    //        fill_color: BALL_COLOR,
+    //        dx: X_VEL,
+    //        dy: Y_VEL,
+    //    }
+    //}
 
-    pub fn draw(&mut self, painter: &egui::Painter, draw_data: &ProjectileDrawData) {
-        self.x = self.x - self.dx;
+    ///Movement of ball thru the 2D plane
+    ///
+    ///The coordinate system used is (0.0,0.0)--(1.0,1.0)
+    ///Where 0.0 is the minimum x or y and 1.0 is the maximum of any of this coordinates.
+    ///
+    ///This is was done with the purpose of being able to draw the initial position of the
+    ///projectile(center) with out the use of the screen parameters at first.
+    ///
+    ///The center of the screen would be the (screen_width/2, screen_height/2) this can be
+    ///translated to (0.5, 0.5).
+    pub fn draw(&mut self, painter: &egui::Painter, frame: &egui::Rect) {
+        self.x = self.x + self.dx;
         self.y = self.y - self.dy;
 
-        if self.x >= draw_data.frame.max.x || self.x <= draw_data.frame.min.x {
+        let screen_x = frame.min.x + (self.x * frame.width());
+        let screen_y = frame.min.y + (self.y * frame.height());
+
+        //The addition or substraction inside the logic is so the circle does not use the center as
+        //the x or y location. This way the circle would not go thru some of the borders.
+        if (self.x + 0.01) >= MAX_VALUE {
             //Check bound collition given a frame
             self.dx *= -1.0;
         }
+        if (self.x - 0.01) <= MIN_VALUE {
+            self.dx *= -1.0;
+        }
 
-        if self.y <= draw_data.frame.min.y || self.y >= draw_data.frame.max.y {
+        if (self.y - 0.01) <= MIN_VALUE {
+            self.dy *= -1.0;
+        }
+
+        if (self.y + 0.01) >= MAX_VALUE {
             self.dy *= -1.0;
         }
 
         painter.add(egui::Shape::Circle(CircleShape::filled(
-            Pos2::new(self.x, self.y),
-            self.radius,
-            BALL_COLOR,
-        )));
-    }
-
-    pub fn centered(&mut self, painter: &egui::Painter, draw_data: &ProjectileDrawData) {
-        self.x = draw_data.frame.center().x;
-        self.y = draw_data.frame.center().y;
-
-        painter.add(egui::Shape::Circle(CircleShape::filled(
-            Pos2::new(self.x, self.y),
+            Pos2::new(screen_x, screen_y),
             self.radius,
             self.fill_color,
         )));
     }
+
+    ////Centers the projectile given window size
+    //pub fn centered(&mut self, frame: &egui::Rect) {
+    //    self.x = frame.center().x;
+    //    self.y = frame.center().y;
+    //}
 }
 
+///Default values to put circle in center
 impl Default for Projectile {
     fn default() -> Self {
         Projectile {
-            x: 0.0,
-            y: 0.0,
+            x: 0.5,
+            y: 0.5,
             dx: X_VEL,
             dy: Y_VEL,
             radius: RADIUS,

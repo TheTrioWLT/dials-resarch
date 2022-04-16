@@ -3,7 +3,6 @@ use glium::glutin;
 
 use crate::frame::Frame;
 use crate::projectile::Projectile;
-use crate::projectile::ProjectileDrawData;
 
 //Uses the glium and glutin to make window.
 fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Display {
@@ -35,11 +34,10 @@ pub fn draw_gui() {
     let mut dial_angle: f32 = 0.0;
 
     let mut projectile = Projectile::default(); // Need to find better way to initialize this.
-    let mut started = false; //If reading has started
 
     event_loop.run(move |event, _, control_flow| {
         let mut redraw = || {
-            let mut quit = false;
+            let quit = false;
 
             let needs_repaint = egui_glium.run(&display, |egui_ctx| {
                 //Making a window inside the window, it cannot go away from the parent window
@@ -64,9 +62,14 @@ pub fn draw_gui() {
                 //Main area
 
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
-                    let frame = tracking_frame(egui_ctx, ui, &mut projectile, &mut started);
-                    crosshair(&frame, ui);
                     let painter = ui.painter();
+                    let mut new_frame = Frame::new(egui_ctx);
+
+                    new_frame.draw_frame(painter);
+                    projectile.draw(painter, &new_frame.window_rect);
+
+                    //let frame = tracking_frame(egui_ctx, ui, &mut projectile, &mut started);
+                    //crosshair(&frame, ui);
 
                     let window_rect = egui_ctx.available_rect();
 
@@ -197,83 +200,5 @@ pub fn draw_gui() {
             }
         }
         display.gl_window().window().request_redraw();
-    });
-}
-
-//Handles the movement of the ball
-fn tracking_frame(
-    egui_ctx: &egui::Context,
-    ui: &mut egui::Ui,
-    projectile: &mut Projectile,
-    started: &mut bool,
-) -> egui::Rect {
-    ui.label("Yolo");
-
-    let painter = ui.painter();
-
-    let frame = draw_frame(egui_ctx, painter);
-
-    let draw_data = ProjectileDrawData {
-        frame,
-        width_pos: frame.center(),
-        height_pos: frame.center_top(),
-    };
-    if ui.input().key_down(egui::Key::Space) {
-        //When to start the program
-        *started = true;
-    }
-    if !*started {
-        projectile.centered(&painter, &draw_data);
-    } else {
-        projectile.draw(&painter, &draw_data);
-    }
-    frame
-}
-
-//This function should be in its own file
-//
-//It may be better to have another structure hold the frame made + crosshair in the center of such
-fn draw_frame(egui_ctx: &egui::Context, painter: &egui::Painter) -> egui::Rect {
-    let window_rect = egui_ctx.available_rect();
-
-    let rec_top_left = egui::Pos2::new(window_rect.width() * 0.20, 0.0);
-    let rec_bottom_right = egui::Pos2::new(window_rect.width() * 0.80, window_rect.height() * 0.70);
-
-    let frame = egui::Rect::from_min_max(rec_top_left, rec_bottom_right);
-
-    let stroke = egui::epaint::Stroke::new(1.0, egui::Color32::WHITE);
-
-    let rect = egui::epaint::RectShape::stroke(frame, 0.0, stroke);
-
-    painter.add(egui::Shape::Rect(rect));
-
-    frame
-}
-
-fn crosshair(frame: &egui::Rect, ui: &mut egui::Ui) {
-    let painter = ui.painter();
-    let stroke = egui::Stroke::new(1.0, egui::Color32::WHITE);
-
-    let v_top_pos = egui::Pos2::new(
-        frame.center().x,
-        (frame.center().y - frame.height() * 0.05).abs(),
-    );
-    let v_bot_pos = egui::Pos2::new(frame.center().x, frame.center().y + frame.height() * 0.05);
-
-    painter.add(egui::Shape::LineSegment {
-        points: [v_top_pos, v_bot_pos],
-        stroke,
-    });
-
-    let h_left_pos = egui::Pos2::new(
-        (frame.center().x - frame.width() * 0.05).abs(),
-        frame.center().y,
-    );
-
-    let h_right_pos = egui::Pos2::new(frame.center().x + frame.width() * 0.05, frame.center().y);
-
-    painter.add(egui::Shape::LineSegment {
-        points: [h_left_pos, h_right_pos],
-        stroke,
     });
 }
