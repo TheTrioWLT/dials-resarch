@@ -68,6 +68,9 @@ pub fn draw_gui() {
 
             let needs_repaint = egui_glium.run(&display, |egui_ctx| {
                 egui::CentralPanel::default().show(egui_ctx, |ui| {
+                    // Make this work continously on Windows
+                    egui_ctx.request_repaint();
+
                     let painter = ui.painter();
                     let now = Instant::now();
                     let delta_time = now.duration_since(last_frame).as_secs_f32();
@@ -205,8 +208,5 @@ pub fn draw_gui() {
             }
             _ => {}
         }
-
-        // Not efficient :)
-        display.gl_window().window().request_redraw();
     });
 }
