@@ -17,11 +17,11 @@ const DIAL_TICK_COLOR: Color32 = Color32::WHITE;
 const DIAL_BAR_COLOR: Color32 = Color32::YELLOW;
 const DIAL_NEEDLE_COLOR: Color32 = Color32::YELLOW;
 
-const DIAL_MAX_VALUE: u32 = 10000;
+const DIAL_MAX_VALUE: f32 = 10000.0;
 // const DIAL_BAR_TICK_VALUE: u32 = 1000;
-const DIAL_NEEDLE_TICK_VALUE: u32 = 100;
+const DIAL_NEEDLE_TICK_VALUE: f32 = 100.0;
 
-const DIAL_NEEDLE_MAX: u32 = DIAL_NEEDLE_TICK_VALUE * NUM_DIAL_TICKS;
+const DIAL_NEEDLE_MAX: f32 = DIAL_NEEDLE_TICK_VALUE * NUM_DIAL_TICKS as f32;
 
 pub struct DialDrawData {
     pub y_offset: f32,
@@ -113,7 +113,15 @@ impl Dial {
         thread::spawn(|| crate::audio::play().unwrap());
     }
 
-    pub fn increment_value(&mut self, increment: u32) {
-        self.value = (self.value + increment) % DIAL_MAX_VALUE;
+    fn increment_value(&mut self, increment: f32) {
+        // Currently here we implement the alarms as when the dial maxes out
+        // TODO: Implement actual in/out of ranges
+        let added = self.value + increment;
+        if (added) >= DIAL_MAX_VALUE {
+            self.value = added % DIAL_MAX_VALUE;
+            self.on_out_of_range();
+        } else {
+            self.value = added;
+        }
     }
 }

@@ -49,7 +49,7 @@ pub fn draw_gui() {
     }
 
     let mut last_frame = Instant::now();
-  
+
     let mut frame = Frame::new();
 
     // These are being used sort of like input axes, but these are Pos2(positive, negative) in that
@@ -113,7 +113,7 @@ pub fn draw_gui() {
                     }
 
                     frame.update(&input_axes);
-                    frame.draw(painter, &window_rect, 0.12);
+                    frame.draw(painter, &window_rect, delta_time);
                 });
             });
 
