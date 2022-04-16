@@ -141,46 +141,44 @@ pub fn draw_gui() {
                     WindowEvent::KeyboardInput {
                         input:
                             glutin::event::KeyboardInput {
-                                virtual_keycode,
+                                virtual_keycode: Some(keycode),
                                 state,
                                 ..
                             },
                         ..
                     } => {
-                        if let Some(keycode) = virtual_keycode {
-                            // Highly inefficient but good enough for testing
-                            if state == ElementState::Pressed {
-                                match keycode {
-                                    VirtualKeyCode::Up => {
-                                        input_y.x = 1.0;
-                                    }
-                                    VirtualKeyCode::Down => {
-                                        input_y.y = 1.0;
-                                    }
-                                    VirtualKeyCode::Left => {
-                                        input_x.x = 1.0;
-                                    }
-                                    VirtualKeyCode::Right => {
-                                        input_x.y = 1.0;
-                                    }
-                                    _ => {}
+                        // Highly inefficient but good enough for testing
+                        if state == ElementState::Pressed {
+                            match keycode {
+                                VirtualKeyCode::Up => {
+                                    input_y.x = 1.0;
                                 }
-                            } else {
-                                match keycode {
-                                    VirtualKeyCode::Up => {
-                                        input_y.x = 0.0;
-                                    }
-                                    VirtualKeyCode::Down => {
-                                        input_y.y = 0.0;
-                                    }
-                                    VirtualKeyCode::Left => {
-                                        input_x.x = 0.0;
-                                    }
-                                    VirtualKeyCode::Right => {
-                                        input_x.y = 0.0;
-                                    }
-                                    _ => {}
+                                VirtualKeyCode::Down => {
+                                    input_y.y = 1.0;
                                 }
+                                VirtualKeyCode::Left => {
+                                    input_x.x = 1.0;
+                                }
+                                VirtualKeyCode::Right => {
+                                    input_x.y = 1.0;
+                                }
+                                _ => {}
+                            }
+                        } else {
+                            match keycode {
+                                VirtualKeyCode::Up => {
+                                    input_y.x = 0.0;
+                                }
+                                VirtualKeyCode::Down => {
+                                    input_y.y = 0.0;
+                                }
+                                VirtualKeyCode::Left => {
+                                    input_x.x = 0.0;
+                                }
+                                VirtualKeyCode::Right => {
+                                    input_x.y = 0.0;
+                                }
+                                _ => {}
                             }
                         }
                     }

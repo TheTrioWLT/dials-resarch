@@ -51,18 +51,18 @@ impl Ball {
             frame_center.y + self.pos.y * half_frame_width,
         );
 
+        // This is for bounds checking on the ball
         // The addition or substraction inside the logic is so the circle does not use the center as
-        // the x or y location. This way the circle would not go thru some of the borders.
-        if (self.pos.x + ball_normalized_radius) >= 1.0 {
-            //Check bound collition given a frame
-            self.velocity.x *= -1.0;
-        } else if (self.pos.x - ball_normalized_radius) <= -1.0 {
+        // the x or y location. This way the circle would not go through some of the borders.
+        if (self.pos.x + ball_normalized_radius) >= 1.0
+            || (self.pos.x - ball_normalized_radius) <= -1.0
+        {
             self.velocity.x *= -1.0;
         }
 
-        if (self.pos.y - ball_normalized_radius) <= -1.0 {
-            self.velocity.y *= -1.0;
-        } else if (self.pos.y + ball_normalized_radius) >= 1.0 {
+        if (self.pos.y - ball_normalized_radius) <= -1.0
+            || (self.pos.y + ball_normalized_radius) >= 1.0
+        {
             self.velocity.y *= -1.0;
         }
 
