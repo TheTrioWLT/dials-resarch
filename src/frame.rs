@@ -1,44 +1,72 @@
-const FRAME_HEIGHT_PRCNT: f32 = 0.70;
-const FRAME_WIDTH_PRCNT: f32 = 0.20;
+use crate::ball::Ball;
+use egui::{Color32, Pos2};
 
 const FRAME_BORDER_WIDTH: f32 = 1.0;
-const FRAME_BORDER_COLOR: egui::Color32 = egui::Color32::WHITE;
+const FRAME_BORDER_COLOR: Color32 = Color32::WHITE;
 
-const FRAME_EDGE_ROUND: f32 = 0.0;
+const FRAME_MARGIN_PERCENT: f32 = 0.0125;
+const FRAME_MAX_WIDTH_PERCENT: f32 = 1.0 - 2.0 * FRAME_MARGIN_PERCENT;
+const FRAME_MAX_HEIGHT_PERCENT: f32 = 0.70 - 2.0 * FRAME_MARGIN_PERCENT;
 
-const V_CROSSHAIR_OFFSET: f32 = 0.05;
-const H_CROSSHAIR_OFFSET: f32 = 0.05;
+// These positions are in virtual coordinates where the coordinates are normalized based on the
+// size of the ball's frame
+const CROSSHAIR_START_POS: Pos2 = Pos2::new(0.0, 0.0);
+// This is a percentage of the *frame size*, not window size
+const CROSSHAIR_SIZE_PERCENT: f32 = 0.125;
+const CROSSHAIR_STROKE: f32 = 1.0;
+const CROSSHAIR_COLOR: Color32 = Color32::WHITE;
 
-///Holds the new frame made inside a window for main program where projectile moves.
-
-pub struct Frame {
-    pub window_rect: egui::Rect,
-    pub crosshair: Vec<egui::Shape>,
+pub struct Crosshair {
+    pos: egui::Pos2,
 }
 
-impl Frame {
-    ///Only the Context of the window will be used in order to construct what is needed.
-    pub fn new(egui_ctx: &egui::Context) -> Self {
-        let window_rect = egui_ctx.available_rect();
+impl Crosshair {
+    pub fn new() -> Self {
+        Self {
+            pos: CROSSHAIR_START_POS,
+        }
+    }
 
-        let rec_top_left =
-            egui::Pos2::new(window_rect.width() * FRAME_WIDTH_PRCNT, window_rect.top());
-        let rec_bottom_right = egui::Pos2::new(
-            window_rect.width() * FRAME_WIDTH_PRCNT * 4.0,
-            window_rect.height() * FRAME_HEIGHT_PRCNT,
-        );
+    pub fn set_x(&mut self, x: f32) {
+        self.pos.x = x;
+    }
 
-        let frame = egui::Rect::from_min_max(rec_top_left, rec_bottom_right);
+    pub fn set_y(&mut self, y: f32) {
+        self.pos.y = y;
+    }
 
-        //let rect = egui::epaint::RectShape::stroke(frame, 0.0, stroke);
+    pub fn increment_x(&mut self, x: f32) {
+        self.pos.x += x;
+    }
 
-        let stroke = egui::epaint::Stroke::new(FRAME_BORDER_WIDTH, egui::Color32::WHITE);
+    pub fn increment_y(&mut self, y: f32) {
+        self.pos.y += y;
+    }
 
-        let mut crosshair = Vec::new();
+    pub fn position(&mut self) -> Pos2 {
+        self.pos
+    }
 
-        //Making the lines for the crosshair
+    pub fn draw(&self, painter: &egui::Painter, frame_rect: &egui::Rect) {
+        let frame_center = frame_rect.center();
+        // The frame is guaranteed to be square
+        let crosshair_half_size = CROSSHAIR_SIZE_PERCENT * frame_rect.height() / 2.0;
+
+        let v_top_pos = Pos2::new(frame_center.x, frame_center.y - crosshair_half_size);
+        let v_bottom_pos = Pos2::new(frame_center.x, frame_center.y + crosshair_half_size);
+
+        let h_left_pos = Pos2::new(frame_center.x - crosshair_half_size, frame_center.y);
+        let h_right_pos = Pos2::new(frame_center.x + crosshair_half_size, frame_center.y);
+
+        let stroke = egui::Stroke::new(CROSSHAIR_STROKE, CROSSHAIR_COLOR);
+
+        painter.line_segment([v_top_pos, v_bottom_pos], stroke);
+        painter.line_segment([h_left_pos, h_right_pos], stroke);
+
+        /*
+        // Making the lines for the crosshair
         //
-        //Needs fixing, this way of constructing is not ideal
+        // Needs fixing, this way of constructing is not ideal
         let v_top_pos = egui::Pos2::new(
             frame.center().x,
             (frame.center().y - frame.height() * V_CROSSHAIR_OFFSET).abs(),
@@ -67,23 +95,72 @@ impl Frame {
             points: [h_left_pos, h_right_pos],
             stroke,
         });
+        */
+    }
+}
 
-        Frame {
-            window_rect: frame,
-            crosshair,
+impl Default for Crosshair {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Holds the rectangle in which the ball moves in the main tracking task
+pub struct Frame {
+    pub crosshair: Crosshair,
+    pub ball: Ball,
+}
+
+impl Frame {
+    pub fn new() -> Self {
+        Self {
+            crosshair: Crosshair::new(),
+            ball: Ball::new(),
         }
     }
 
-    ///Draws the frame assuming the user setup the Frame structure properly.
-    pub fn draw_frame(&mut self, painter: &egui::Painter) {
-        let stroke = egui::epaint::Stroke::new(FRAME_BORDER_WIDTH, FRAME_BORDER_COLOR);
+    /// Draws the frame
+    pub fn draw(&mut self, painter: &egui::Painter, window_rect: &egui::Rect) {
+        let window_center_top = window_rect.center_top();
 
-        let rect = egui::epaint::RectShape::stroke(self.window_rect, FRAME_EDGE_ROUND, stroke);
+        let window_width = window_rect.width();
+        let window_height = window_rect.height();
 
-        painter.add(egui::Shape::Rect(rect));
+        // The frame's side length as determined by the width of the window
+        let frame_width_by_width = window_width * FRAME_MAX_WIDTH_PERCENT;
 
-        for rect in self.crosshair.iter() {
-            painter.add(rect.to_owned());
-        }
+        // The frame's side length as determined by the height of the window
+        let frame_width_by_height = window_height * FRAME_MAX_HEIGHT_PERCENT;
+
+        // We need whichever is the smallest because we need it to fit properly in the window
+        let frame_width = frame_width_by_width.min(frame_width_by_height);
+        let frame_half_width = frame_width / 2.0;
+
+        let frame_top_offset = window_height * FRAME_MARGIN_PERCENT;
+
+        let frame_center = Pos2::new(window_center_top.x, frame_top_offset + frame_half_width);
+        let frame_rect = egui::Rect::from_center_size(
+            frame_center,
+            egui::Vec2 {
+                x: frame_width,
+                y: frame_width,
+            },
+        );
+
+        let frame_rect_shape = egui::epaint::RectShape::stroke(
+            frame_rect,
+            egui::Rounding::none(),
+            egui::Stroke::new(FRAME_BORDER_WIDTH, FRAME_BORDER_COLOR),
+        );
+
+        painter.add(egui::Shape::Rect(frame_rect_shape));
+
+        self.crosshair.draw(painter, &frame_rect);
+    }
+}
+
+impl Default for Frame {
+    fn default() -> Self {
+        Self::new()
     }
 }
