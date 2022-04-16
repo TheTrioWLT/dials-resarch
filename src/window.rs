@@ -1,7 +1,3 @@
-
-use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
-use glium::glutin;
-
 use crate::frame::Frame;
 use crate::projectile::Projectile;
 use glium::glutin;
@@ -9,7 +5,6 @@ use glium::glutin;
 use crate::dial::{
     Dial, DialDrawData, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT, DIAL_Y_OFFSET_PERCENT,
 };
-
 
 //Uses the glium and glutin to make window.
 fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Display {
