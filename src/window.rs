@@ -115,7 +115,6 @@ pub fn draw_gui() {
                         dial.draw(painter, &dial_draw_data);
                     }
 
-                    println!("{}", delta_time);
                     frame.update(&input_axes, delta_time);
                     frame.draw(painter, &window_rect, delta_time);
                 });
