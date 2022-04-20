@@ -6,7 +6,8 @@ use glutin::event::{ElementState, VirtualKeyCode};
 
 use crate::{
     dial::{
-        Dial, DialDrawData, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT, DIAL_Y_OFFSET_PERCENT,
+        Dial, DialDrawData, DialRange, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT,
+        DIAL_Y_OFFSET_PERCENT,
     },
     frame::Frame,
 };
@@ -44,7 +45,11 @@ pub fn draw_gui() {
     let mut dials = Vec::new();
 
     for i in 0..num_dials {
-        let dial = Dial::new(i + 1, (i + 1) as f32 * 100.0);
+        let dial = Dial::new(
+            i + 1,
+            25.0,
+            DialRange::new(i as f32 * 200.0, (i + 1) as f32 * 400.0),
+        );
         dials.push(dial);
     }
 
@@ -108,13 +113,14 @@ pub fn draw_gui() {
                         dial_width_percent,
                         window_width,
                         window_left_bottom,
-                        delta_time,
                     };
 
                     for dial in dials.iter_mut() {
+                        dial.update(delta_time);
                         dial.draw(painter, &dial_draw_data);
                     }
 
+                    // ----------------- Draw the frame -----------------
                     frame.update(&input_axes, delta_time);
                     frame.draw(painter, &window_rect, delta_time);
                 });
