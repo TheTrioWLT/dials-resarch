@@ -33,6 +33,16 @@ fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Disp
     glium::Display::new(window_builder, context_builder, event_loop).unwrap()
 }
 
+/// Map a key press `k` to to its dial number, or None if `k` is not a dial
+macro_rules! key_to_dial_num {
+    ($k:expr, $($case:path, $lit:literal),+) => {
+        match $k {
+            $($case => Some($lit),)+
+            _ => None,
+        }
+    };
+}
+
 //Draws the gui, window, images, labels etc...
 pub fn draw_gui() {
     let event_loop = glutin::event_loop::EventLoop::with_user_event();
@@ -232,49 +242,19 @@ pub fn draw_gui() {
                                     input_x.y = 0.0;
                                 }
                                 k => {
-                                    // Awfully handle all reasonable key presses to reset dials
-                                    let c = match k {
-                                        VirtualKeyCode::Key1 => '1',
-                                        VirtualKeyCode::Key2 => '2',
-                                        VirtualKeyCode::Key3 => '3',
-                                        VirtualKeyCode::Key4 => '4',
-                                        VirtualKeyCode::Key5 => '5',
-                                        VirtualKeyCode::Key6 => '6',
-                                        VirtualKeyCode::Key7 => '7',
-                                        VirtualKeyCode::Key8 => '8',
-                                        VirtualKeyCode::Key9 => '9',
-                                        VirtualKeyCode::Key0 => '0',
-                                        VirtualKeyCode::A => 'A',
-                                        VirtualKeyCode::B => 'B',
-                                        VirtualKeyCode::C => 'C',
-                                        VirtualKeyCode::D => 'D',
-                                        VirtualKeyCode::E => 'E',
-                                        VirtualKeyCode::F => 'F',
-                                        VirtualKeyCode::G => 'G',
-                                        VirtualKeyCode::H => 'H',
-                                        VirtualKeyCode::I => 'I',
-                                        VirtualKeyCode::J => 'J',
-                                        VirtualKeyCode::K => 'K',
-                                        VirtualKeyCode::L => 'L',
-                                        VirtualKeyCode::M => 'M',
-                                        VirtualKeyCode::N => 'N',
-                                        VirtualKeyCode::O => 'O',
-                                        VirtualKeyCode::P => 'P',
-                                        VirtualKeyCode::Q => 'Q',
-                                        VirtualKeyCode::R => 'R',
-                                        VirtualKeyCode::S => 'S',
-                                        VirtualKeyCode::T => 'T',
-                                        VirtualKeyCode::U => 'U',
-                                        VirtualKeyCode::V => 'V',
-                                        VirtualKeyCode::W => 'W',
-                                        VirtualKeyCode::X => 'X',
-                                        VirtualKeyCode::Y => 'Y',
-                                        VirtualKeyCode::Z => 'Z',
-                                        _ => '\0',
-                                    };
+                                    use VirtualKeyCode::*;
 
-                                    if c != '\0' {
-                                        pressed_key = Some(c);
+                                    let maybe_dial = key_to_dial_num!(
+                                        k, Key1, '1', Key2, '2', Key3, '3', Key4, '4', Key5, '5',
+                                        Key6, '6', Key7, '7', Key8, '8', Key9, '9', A, 'A', B, 'B',
+                                        C, 'C', D, 'D', E, 'E', F, 'F', G, 'G', H, 'H', I, 'I', J,
+                                        'J', K, 'K', L, 'L', M, 'M', N, 'N', O, 'O', P, 'P', Q,
+                                        'Q', R, 'R', S, 'S', T, 'T', U, 'U', V, 'V', W, 'W', X,
+                                        'X', Y, 'Y', Z, 'Z'
+                                    );
+
+                                    if let Some(dial_num) = maybe_dial {
+                                        pressed_key = Some(dial_num);
                                     }
                                 }
                             }
