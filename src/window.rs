@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::VecDeque, time::Instant};
 
 use egui::{epaint::RectShape, Color32};
 use glium::glutin;
@@ -6,7 +6,7 @@ use glutin::event::{ElementState, VirtualKeyCode};
 
 use crate::{
     dial::{
-        Dial, DialDrawData, DialRange, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT,
+        Dial, DialDrawData, DialRange, DialReaction, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT,
         DIAL_Y_OFFSET_PERCENT,
     },
     frame::Frame,
@@ -44,11 +44,13 @@ pub fn draw_gui() {
     let num_dials = 5;
     let mut dials = Vec::new();
 
+    let range_size = 4000.0;
     for i in 0..num_dials {
         let dial = Dial::new(
             i + 1,
-            25.0,
-            DialRange::new(i as f32 * 200.0, (i + 1) as f32 * 400.0),
+            50.0,
+            DialRange::new(i as f32 * 200.0, i as f32 * 200.0 + range_size),
+            (i + 1).to_string().chars().next().unwrap(),
         );
         dials.push(dial);
     }
@@ -63,6 +65,11 @@ pub fn draw_gui() {
     // combined.
     let mut input_y = egui::Pos2::new(0.0, 0.0);
     let mut input_x = egui::Pos2::new(0.0, 0.0);
+
+    let mut pressed_key: Option<char> = None;
+
+    // This stores the current dial alarms and resets that the user needs to perform
+    let mut queued_alarms = VecDeque::new();
 
     event_loop.run(move |event, _, control_flow| {
         // This is the corrected version of the input_y and input_x
@@ -116,13 +123,36 @@ pub fn draw_gui() {
                     };
 
                     for dial in dials.iter_mut() {
-                        dial.update(delta_time);
+                        if let Some(alarm) = dial.update(delta_time) {
+                            queued_alarms.push_back(alarm);
+                        }
+
                         dial.draw(painter, &dial_draw_data);
+                    }
+
+                    if let Some(key) = pressed_key {
+                        if let Some(alarm) = queued_alarms.pop_front() {
+                            let millis = alarm.time.elapsed().as_millis() as u32;
+
+                            let reaction = DialReaction::new(
+                                alarm.dial_num,
+                                millis,
+                                alarm.correct_key == key,
+                                key,
+                            );
+
+                            dials.get_mut(alarm.dial_num as usize - 1).unwrap().reset();
+
+                            println!("{reaction:?}");
+                        }
                     }
 
                     // ----------------- Draw the frame -----------------
                     frame.update(&input_axes, delta_time);
                     frame.draw(painter, &window_rect, delta_time);
+
+                    // Reset the pressed key since it was released last time
+                    pressed_key = None;
                 });
             });
 
@@ -201,7 +231,52 @@ pub fn draw_gui() {
                                 VirtualKeyCode::Right => {
                                     input_x.y = 0.0;
                                 }
-                                _ => {}
+                                k => {
+                                    // Awfully handle all reasonable key presses to reset dials
+                                    let c = match k {
+                                        VirtualKeyCode::Key1 => '1',
+                                        VirtualKeyCode::Key2 => '2',
+                                        VirtualKeyCode::Key3 => '3',
+                                        VirtualKeyCode::Key4 => '4',
+                                        VirtualKeyCode::Key5 => '5',
+                                        VirtualKeyCode::Key6 => '6',
+                                        VirtualKeyCode::Key7 => '7',
+                                        VirtualKeyCode::Key8 => '8',
+                                        VirtualKeyCode::Key9 => '9',
+                                        VirtualKeyCode::Key0 => '0',
+                                        VirtualKeyCode::A => 'A',
+                                        VirtualKeyCode::B => 'B',
+                                        VirtualKeyCode::C => 'C',
+                                        VirtualKeyCode::D => 'D',
+                                        VirtualKeyCode::E => 'E',
+                                        VirtualKeyCode::F => 'F',
+                                        VirtualKeyCode::G => 'G',
+                                        VirtualKeyCode::H => 'H',
+                                        VirtualKeyCode::I => 'I',
+                                        VirtualKeyCode::J => 'J',
+                                        VirtualKeyCode::K => 'K',
+                                        VirtualKeyCode::L => 'L',
+                                        VirtualKeyCode::M => 'M',
+                                        VirtualKeyCode::N => 'N',
+                                        VirtualKeyCode::O => 'O',
+                                        VirtualKeyCode::P => 'P',
+                                        VirtualKeyCode::Q => 'Q',
+                                        VirtualKeyCode::R => 'R',
+                                        VirtualKeyCode::S => 'S',
+                                        VirtualKeyCode::T => 'T',
+                                        VirtualKeyCode::U => 'U',
+                                        VirtualKeyCode::V => 'V',
+                                        VirtualKeyCode::W => 'W',
+                                        VirtualKeyCode::X => 'X',
+                                        VirtualKeyCode::Y => 'Y',
+                                        VirtualKeyCode::Z => 'Z',
+                                        _ => '\0',
+                                    };
+
+                                    if c != '\0' {
+                                        pressed_key = Some(c);
+                                    }
+                                }
                             }
                         }
                     }

@@ -1,4 +1,4 @@
-use std::thread;
+use std::{thread, time::Instant};
 
 use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
 
@@ -23,6 +23,7 @@ const DIAL_NEEDLE_TICK_VALUE: f32 = 100.0;
 
 const DIAL_NEEDLE_MAX: f32 = DIAL_NEEDLE_TICK_VALUE * NUM_DIAL_TICKS as f32;
 
+#[derive(Debug, Copy, Clone)]
 pub struct DialRange {
     pub start: f32,
     pub end: f32,
@@ -42,6 +43,7 @@ impl DialRange {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct DialDrawData {
     pub y_offset: f32,
     pub radius: f32,
@@ -50,20 +52,61 @@ pub struct DialDrawData {
     pub window_left_bottom: Pos2,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct DialReaction {
+    pub dial_num: u32,
+    pub millis: u32,
+    pub correct_key: bool,
+    pub key: char,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct DialAlarm {
+    pub dial_num: u32,
+    pub time: Instant,
+    pub correct_key: char,
+}
+
+impl DialAlarm {
+    pub fn new(dial_num: u32, time: Instant, correct_key: char) -> Self {
+        Self {
+            dial_num,
+            time,
+            correct_key,
+        }
+    }
+}
+
+impl DialReaction {
+    pub fn new(dial_num: u32, millis: u32, correct_key: bool, key: char) -> Self {
+        Self {
+            dial_num,
+            millis,
+            correct_key,
+            key,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct Dial {
     value: f32,
     dial_num: u32,
     rate: f32,
     in_range: DialRange,
+    key: char,
+    alarm_fired: bool,
 }
 
 impl Dial {
-    pub fn new(dial_num: u32, rate: f32, in_range: DialRange) -> Self {
+    pub fn new(dial_num: u32, rate: f32, in_range: DialRange, key: char) -> Self {
         let mut dial = Self {
             value: 0.0,
             dial_num,
             rate,
             in_range,
+            key,
+            alarm_fired: false,
         };
 
         // Immediately "reset"
@@ -83,15 +126,23 @@ impl Dial {
 
         self.value = reset_value;
         self.rate = new_rate;
+        self.alarm_fired = false;
     }
 
-    pub fn update(&mut self, delta_time: f32) {
+    /// Updates the dial using the amount of time that has passed since the last update
+    /// A DialReaction data structure is returned if this dial has gone out of range.
+    pub fn update(&mut self, delta_time: f32) -> Option<DialAlarm> {
         // Increment the value using the rate and the delta time
         self.increment_value(delta_time * self.rate);
 
-        if !self.in_range.contains(self.value) {
+        if !self.alarm_fired && !self.in_range.contains(self.value) {
             self.on_out_of_range();
-            self.reset();
+
+            let dial_alarm = DialAlarm::new(self.dial_num, Instant::now(), self.key);
+
+            Some(dial_alarm)
+        } else {
+            None
         }
     }
 
@@ -182,9 +233,9 @@ impl Dial {
         });
     }
 
-    fn on_out_of_range(&self) {
+    fn on_out_of_range(&mut self) {
         thread::spawn(|| crate::audio::play().unwrap());
-        println!("Dial {} reset.", self.dial_num);
+        self.alarm_fired = true;
     }
 
     fn increment_value(&mut self, increment: f32) {
