@@ -33,6 +33,7 @@ fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Disp
     glium::Display::new(window_builder, context_builder, event_loop).unwrap()
 }
 
+/// Map a key press `k` to to its dial number, or None if `k` is not a dial
 macro_rules! key_to_dial_num {
     ($k:expr, $($case:path, $lit:literal),+) => {
         match $k {
@@ -243,7 +244,6 @@ pub fn draw_gui() {
                                 k => {
                                     use VirtualKeyCode::*;
 
-                                    // Map key presses to dial numbers, or None if `k` is not a dial
                                     let maybe_dial = key_to_dial_num!(
                                         k, Key1, '1', Key2, '2', Key3, '3', Key4, '4', Key5, '5',
                                         Key6, '6', Key7, '7', Key8, '8', Key9, '9', A, 'A', B, 'B',
