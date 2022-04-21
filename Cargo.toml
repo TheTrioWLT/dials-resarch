@@ -11,8 +11,10 @@ egui_glium = "0.17.0"
 
 hound = "3.4"
 rodio = "0.15.0"
-serde = { version = "1.0", features = ["derive"] }
+
 rand = "0.8.5"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.5.9"
 
 [features]
 debugging = []

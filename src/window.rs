@@ -1,4 +1,7 @@
-use std::{collections::VecDeque, time::Instant};
+use std::{
+    collections::{HashMap, VecDeque},
+    time::Instant,
+};
 
 use egui::{epaint::RectShape, Color32};
 use glium::glutin;
@@ -44,26 +47,26 @@ macro_rules! key_to_dial_num {
 }
 
 //Draws the gui, window, images, labels etc...
-pub fn draw_gui() {
+pub fn draw_gui(config: &crate::Config) {
     let event_loop = glutin::event_loop::EventLoop::with_user_event();
     let display = create_display(&event_loop);
 
     //Initiates the display area
     let mut egui_glium = egui_glium::EguiGlium::new(&display);
 
-    let num_dials = 5;
-    let mut dials = Vec::new();
+    // Maps alarm names to alarm structs
+    let alarms: HashMap<&str, &crate::Alarm> =
+        config.alarms.iter().map(|d| (d.name.as_str(), d)).collect();
 
-    let range_size = 4000.0;
-    for i in 0..num_dials {
-        let dial = Dial::new(
-            i + 1,
-            50.0,
-            DialRange::new(i as f32 * 200.0, i as f32 * 200.0 + range_size),
-            (i + 1).to_string().chars().next().unwrap(),
-        );
-        dials.push(dial);
-    }
+    let mut dials: Vec<_> = config
+        .dials
+        .iter()
+        .enumerate()
+        .map(|(i, d)| {
+            let alarm = alarms[d.alarm.as_str()];
+            Dial::new(i, 50.0, DialRange::new(d.start, d.end), alarm.clear_key)
+        })
+        .collect();
 
     let mut last_frame = Instant::now();
 
@@ -114,9 +117,9 @@ pub fn draw_gui() {
                     // ----------------- Draw the dials -----------------
                     let dial_y_offset = DIAL_Y_OFFSET_PERCENT * window_height;
                     let dial_max_radius =
-                        (window_width * DIALS_MAX_WIDTH_PERCENT) / (num_dials as f32 * 2.0);
+                        (window_width * DIALS_MAX_WIDTH_PERCENT) / (dials.len() as f32 * 2.0);
 
-                    let dial_width_percent = 1.0 / (num_dials as f32 + 1.0);
+                    let dial_width_percent = 1.0 / (dials.len() as f32 + 1.0);
 
                     let mut dial_radius = DIAL_HEIGHT_PERCENT * window_height / 2.0;
 
@@ -145,13 +148,13 @@ pub fn draw_gui() {
                             let millis = alarm.time.elapsed().as_millis() as u32;
 
                             let reaction = DialReaction::new(
-                                alarm.dial_num,
+                                alarm.dial_id,
                                 millis,
                                 alarm.correct_key == key,
                                 key,
                             );
 
-                            dials.get_mut(alarm.dial_num as usize - 1).unwrap().reset();
+                            dials[alarm.dial_id].reset();
 
                             println!("{reaction:?}");
                         }
