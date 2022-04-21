@@ -43,14 +43,12 @@ fn validate_config(config: &mut config::Config) {
         }
     }
 
-    // We need to print `alarm_names` in the event of an error
-    #[allow(clippy::needless_collect)]
     let alarm_names: Vec<_> = config.alarms.iter().map(|b| &b.name).collect();
     for dial in &config.dials {
         let alarm_name = &dial.alarm;
         if !alarm_names.contains(&alarm_name) {
             println!("alarm `{alarm_name}` is missing");
-            println!("available alarms are {alarm_name:?}");
+            println!("available alarms are {alarm_names:?}");
             std::process::exit(1);
         }
     }
