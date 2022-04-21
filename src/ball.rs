@@ -1,7 +1,8 @@
 use egui::epaint::CircleShape;
 use egui::Pos2;
 
-const BALL_RADIUS: f32 = 5.0;
+// Frame percentage rather than pixels
+const BALL_RADIUS: f32 = 0.03;
 
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
@@ -10,6 +11,8 @@ const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 // TODO: Move to be read from the configuration file!
 // This is specified in the normalized vector position units per second
 const BALL_START_VELOCITY: Pos2 = Pos2::new(0.25, 0.35);
+
+const BALL_NUDGE_RATE: f32 = 0.01;
 
 pub struct Ball {
     pos: Pos2,
@@ -38,43 +41,55 @@ impl Ball {
     /// The center of the screen would be the (screen_width / 2, screen_height / 2) this can be
     /// translated to (0.0, 0.0).
     ///
-    pub fn draw(&mut self, painter: &egui::Painter, frame_rect: &egui::Rect, delta_time: f32) {
+    pub fn draw(&mut self, painter: &egui::Painter, frame_rect: &egui::Rect) {
         let frame_center = frame_rect.center();
         // The frame is guaranteed to be square
         let frame_width = frame_rect.width();
         let half_frame_width = frame_width / 2.0;
-
-        let ball_normalized_radius = BALL_RADIUS / half_frame_width;
 
         let ball_center = Pos2::new(
             frame_center.x + self.pos.x * half_frame_width,
             frame_center.y + self.pos.y * half_frame_width,
         );
 
-        // This is for bounds checking on the ball
-        // The addition or substraction inside the logic is so the circle does not use the center as
-        // the x or y location. This way the circle would not go through some of the borders.
-        if (self.pos.x + ball_normalized_radius) >= 1.0
-            || (self.pos.x - ball_normalized_radius) <= -1.0
-        {
-            self.velocity.x *= -1.0;
-        }
-
-        if (self.pos.y - ball_normalized_radius) <= -1.0
-            || (self.pos.y + ball_normalized_radius) >= 1.0
-        {
-            self.velocity.y *= -1.0;
-        }
+        let ball_pixel_radius = BALL_RADIUS * half_frame_width;
 
         painter.add(egui::Shape::Circle(CircleShape::filled(
             ball_center,
-            BALL_RADIUS,
+            ball_pixel_radius,
             BALL_COLOR,
         )));
+    }
 
+    pub fn update(&mut self, input_axes: &egui::Pos2, delta_time: f32) {
         // Update the ball's position
         self.pos.x += self.velocity.x * delta_time;
         self.pos.y += self.velocity.y * delta_time;
+
+        self.pos.x += input_axes.x * BALL_NUDGE_RATE;
+        // Corrects for the fact that positive y here is down
+        self.pos.y -= input_axes.y * BALL_NUDGE_RATE;
+
+        // This is for bounds checking on the ball
+        // The addition or substraction inside the logic is so the circle does not use the center as
+        // the x or y location. This way the circle would not go through some of the borders.
+        if (self.pos.x + BALL_RADIUS) >= 1.0 {
+            self.pos.x = 1.0 - BALL_RADIUS;
+            self.velocity.x = -self.velocity.x.abs();
+        }
+        if (self.pos.x - BALL_RADIUS) <= -1.0 {
+            self.pos.x = -1.0 + BALL_RADIUS;
+            self.velocity.x = self.velocity.x.abs();
+        }
+
+        if (self.pos.y - BALL_RADIUS) <= -1.0 {
+            self.pos.y = -1.0 + BALL_RADIUS;
+            self.velocity.y = self.velocity.y.abs();
+        }
+        if (self.pos.y + BALL_RADIUS) >= 1.0 {
+            self.pos.y = 1.0 - BALL_RADIUS;
+            self.velocity.y = -self.velocity.y.abs();
+        }
     }
 }
 

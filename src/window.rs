@@ -168,7 +168,7 @@ pub fn draw_gui(config: &config::Config) {
 
                     // ----------------- Draw the frame -----------------
                     frame.update(&input_axes, delta_time);
-                    frame.draw(painter, &window_rect, delta_time);
+                    frame.draw(painter, &window_rect);
 
                     // Reset the pressed key since it was released last time
                     pressed_key = None;
