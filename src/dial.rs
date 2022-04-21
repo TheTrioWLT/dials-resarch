@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{thread, time::Instant};
 
 use egui::{epaint::CircleShape, Color32, Pos2, Stroke};
@@ -23,7 +24,7 @@ const DIAL_NEEDLE_TICK_VALUE: f32 = 100.0;
 
 const DIAL_NEEDLE_MAX: f32 = DIAL_NEEDLE_TICK_VALUE * NUM_DIAL_TICKS as f32;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct DialRange {
     pub start: f32,
     pub end: f32,
@@ -54,7 +55,7 @@ pub struct DialDrawData {
 
 #[derive(Debug, Copy, Clone)]
 pub struct DialReaction {
-    pub dial_num: u32,
+    pub dial_id: usize,
     pub millis: u32,
     pub correct_key: bool,
     pub key: char,
@@ -62,15 +63,15 @@ pub struct DialReaction {
 
 #[derive(Debug, Copy, Clone)]
 pub struct DialAlarm {
-    pub dial_num: u32,
+    pub dial_id: usize,
     pub time: Instant,
     pub correct_key: char,
 }
 
 impl DialAlarm {
-    pub fn new(dial_num: u32, time: Instant, correct_key: char) -> Self {
+    pub fn new(dial_id: usize, time: Instant, correct_key: char) -> Self {
         Self {
-            dial_num,
+            dial_id,
             time,
             correct_key,
         }
@@ -78,9 +79,9 @@ impl DialAlarm {
 }
 
 impl DialReaction {
-    pub fn new(dial_num: u32, millis: u32, correct_key: bool, key: char) -> Self {
+    pub fn new(dial_id: usize, millis: u32, correct_key: bool, key: char) -> Self {
         Self {
-            dial_num,
+            dial_id,
             millis,
             correct_key,
             key,
@@ -91,7 +92,7 @@ impl DialReaction {
 #[derive(Debug, Copy, Clone)]
 pub struct Dial {
     value: f32,
-    dial_num: u32,
+    dial_id: usize,
     rate: f32,
     in_range: DialRange,
     key: char,
@@ -99,10 +100,10 @@ pub struct Dial {
 }
 
 impl Dial {
-    pub fn new(dial_num: u32, rate: f32, in_range: DialRange, key: char) -> Self {
+    pub fn new(dial_id: usize, rate: f32, in_range: DialRange, key: char) -> Self {
         let mut dial = Self {
             value: 0.0,
-            dial_num,
+            dial_id,
             rate,
             in_range,
             key,
@@ -138,7 +139,7 @@ impl Dial {
         if !self.alarm_fired && !self.in_range.contains(self.value) {
             self.on_out_of_range();
 
-            let dial_alarm = DialAlarm::new(self.dial_num, Instant::now(), self.key);
+            let dial_alarm = DialAlarm::new(self.dial_id, Instant::now(), self.key);
 
             Some(dial_alarm)
         } else {
@@ -148,7 +149,7 @@ impl Dial {
 
     pub fn draw(&mut self, painter: &egui::Painter, draw_data: &DialDrawData) {
         let dial_pos_x =
-            self.dial_num as f32 * draw_data.dial_width_percent * draw_data.window_width;
+            (self.dial_id + 1) as f32 * draw_data.dial_width_percent * draw_data.window_width;
         let dial_center = draw_data.window_left_bottom
             + Pos2::new(dial_pos_x, -draw_data.radius - draw_data.y_offset).to_vec2();
 
