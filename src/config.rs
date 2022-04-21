@@ -30,8 +30,12 @@ pub struct Dial {
     /// The name of the alarm this dial uses
     pub alarm: String,
 
+    /// The start of the "in-range"
     pub start: f32,
+    /// The end of the "in-range"
     pub end: f32,
+    /// The rate at which the dial drifts
+    pub rate: f32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -70,9 +74,10 @@ impl Default for Config {
             }],
             dials: (1u32..=5)
                 .map(|i| Dial {
+                    alarm: i.to_string(),
                     start: i as f32 * 200.0,
                     end: i as f32 * 200.0 + range_size,
-                    alarm: i.to_string(),
+                    rate: 50.0,
                 })
                 .collect(),
 

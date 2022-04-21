@@ -63,9 +63,14 @@ pub fn draw_gui(config: &config::Config) {
         .dials
         .iter()
         .enumerate()
-        .map(|(i, d)| {
-            let alarm = alarms[d.alarm.as_str()];
-            Dial::new(i, 50.0, DialRange::new(d.start, d.end), alarm.clear_key)
+        .map(|(id, dial)| {
+            let alarm = alarms[dial.alarm.as_str()];
+            Dial::new(
+                id,
+                dial.rate,
+                DialRange::new(dial.start, dial.end),
+                alarm.clear_key,
+            )
         })
         .collect();
 
