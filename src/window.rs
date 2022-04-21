@@ -8,6 +8,7 @@ use glium::glutin;
 use glutin::event::{ElementState, VirtualKeyCode};
 
 use crate::{
+    config,
     dial::{
         Dial, DialDrawData, DialRange, DialReaction, DIALS_MAX_WIDTH_PERCENT, DIAL_HEIGHT_PERCENT,
         DIAL_Y_OFFSET_PERCENT,
@@ -36,8 +37,8 @@ fn create_display(event_loop: &glutin::event_loop::EventLoop<()>) -> glium::Disp
     glium::Display::new(window_builder, context_builder, event_loop).unwrap()
 }
 
-/// Map a key press `k` to to its dial number, or None if `k` is not a dial
-macro_rules! key_to_dial_num {
+/// Map a key press `k` to the `char` it corresponds with
+macro_rules! key_to_char {
     ($k:expr, $($case:path, $lit:literal),+) => {
         match $k {
             $($case => Some($lit),)+
@@ -47,7 +48,7 @@ macro_rules! key_to_dial_num {
 }
 
 //Draws the gui, window, images, labels etc...
-pub fn draw_gui(config: &crate::Config) {
+pub fn draw_gui(config: &config::Config) {
     let event_loop = glutin::event_loop::EventLoop::with_user_event();
     let display = create_display(&event_loop);
 
@@ -55,7 +56,7 @@ pub fn draw_gui(config: &crate::Config) {
     let mut egui_glium = egui_glium::EguiGlium::new(&display);
 
     // Maps alarm names to alarm structs
-    let alarms: HashMap<&str, &crate::Alarm> =
+    let alarms: HashMap<&str, &config::Alarm> =
         config.alarms.iter().map(|d| (d.name.as_str(), d)).collect();
 
     let mut dials: Vec<_> = config
@@ -247,7 +248,7 @@ pub fn draw_gui(config: &crate::Config) {
                                 k => {
                                     use VirtualKeyCode::*;
 
-                                    let maybe_dial = key_to_dial_num!(
+                                    let maybe_dial = key_to_char!(
                                         k, Key1, '1', Key2, '2', Key3, '3', Key4, '4', Key5, '5',
                                         Key6, '6', Key7, '7', Key8, '8', Key9, '9', A, 'A', B, 'B',
                                         C, 'C', D, 'D', E, 'E', F, 'F', G, 'G', H, 'H', I, 'I', J,
