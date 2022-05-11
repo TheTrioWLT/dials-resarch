@@ -27,6 +27,7 @@ const DIAL_NEEDLE_MAX: f32 = DIAL_NEEDLE_TICK_VALUE * NUM_DIAL_TICKS as f32;
 pub struct DialWidget {
     value: f32,
     radius: f32,
+    #[allow(dead_code)]
     in_range: DialRange,
 }
 

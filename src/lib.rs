@@ -37,10 +37,12 @@ lazy_static! {
 }
 
 pub fn run() {
-    let mut options = eframe::NativeOptions::default();
-    options.transparent = true;
-    options.vsync = true;
-    options.maximized = true;
+    let options = eframe::NativeOptions {
+        transparent: true,
+        vsync: true,
+        maximized: true,
+        ..eframe::NativeOptions::default()
+    };
 
     let mut config = match std::fs::read_to_string(DEFAULT_INPUT_PATH) {
         Ok(toml) => match toml::from_str(&toml) {
