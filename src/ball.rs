@@ -7,13 +7,10 @@ use rand::prelude::*;
 // Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
 
-const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
-
-// TODO: Move to be read from the configuration file!
-// This is specified in the normalized vector position units per second
-const BALL_SMALL_VELOCITY: Vec2 = Vec2::new(0.25, 0.35);
-const BALL_MEDIUM_VELOCITY: Vec2 = Vec2::new(0.50, 0.75);
-const BALL_FAST_VELOCITY: Vec2 = Vec2::new(1.0, 1.25);
+//These are constant ratios, so the intial velocity is always random
+const BALL_SMALL_VELOCITY: f32 = 0.75;
+const BALL_MEDIUM_VELOCITY: f32 = 1.0;
+const BALL_FAST_VELOCITY: f32 = 1.25;
 
 const BALL_NUDGE_RATE: f32 = 0.003;
 
@@ -40,7 +37,7 @@ impl Ball {
         random_direction_change_time_max: f32,
         velocity_meter: BallVelocity,
     ) -> Self {
-        let velocity = match velocity_meter {
+        let length = match velocity_meter {
             BallVelocity::Small => BALL_SMALL_VELOCITY,
             BallVelocity::Medium => BALL_MEDIUM_VELOCITY,
             BallVelocity::Fast => BALL_FAST_VELOCITY,
@@ -48,7 +45,7 @@ impl Ball {
 
         Self {
             pos: BALL_START_POS,
-            velocity,
+            velocity: new_vel(length),
             time_running: 0.0,
             velocity_change_time_at: 0.0,
             random_direction_change_time_min,
@@ -72,12 +69,8 @@ impl Ball {
         let mut rng = rand::thread_rng();
 
         if self.time_running >= self.velocity_change_time_at {
-            let radians: f32 = rng.gen_range(0.0..2.0 * f32::consts::PI);
-            let (new_x, new_y) = (radians.cos(), radians.sin());
-            self.velocity = Vec2::new(
-                new_x * self.velocity.length(),
-                new_y * self.velocity.length(),
-            );
+            self.velocity = new_vel(self.velocity.length());
+
             self.time_running = 0.0;
             self.velocity_change_time_at = rng.gen_range(
                 self.random_direction_change_time_min..=self.random_direction_change_time_max,
@@ -120,6 +113,16 @@ impl Ball {
     pub fn pos(&self) -> Pos2 {
         self.pos
     }
+}
+//Function to make calculate the new velocity
+fn new_vel(length: f32) -> Vec2 {
+    let mut rng = rand::thread_rng();
+
+    let radians: f32 = rng.gen_range(0.0..2.0 * f32::consts::PI) as f32;
+
+    let (x, y) = (radians.cos(), radians.sin());
+
+    Vec2::new(x * length, y * length)
 }
 
 impl Default for Ball {
