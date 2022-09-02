@@ -1,6 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 fn main() -> anyhow::Result<()> {
-    pretty_env_logger::init();
+    env_logger::builder()
+        .format_timestamp_millis()
+        .filter(Some("dials-research"), log::LevelFilter::Debug)
+        .filter(None, log::LevelFilter::Info)
+        .init();
     dials_research::run()
 }

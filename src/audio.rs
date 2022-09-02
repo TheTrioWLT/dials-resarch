@@ -1,7 +1,7 @@
 use anyhow::Result;
 use log::{debug, error, info};
 use rodio::OutputStreamHandle;
-use rodio::{source::Source, Decoder, OutputStream};
+use rodio::{buffer::SamplesBuffer, source::Source, Decoder, OutputStream};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -65,13 +65,15 @@ impl AudioManager {
         let handle = Arc::clone(&self.stream_handle);
         let path = path.to_owned();
 
+        info!("called play");
         self.pool.spawn(move || {
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
             info!("play start");
             if let Err(e) = stream_handle.play_raw(sample) {
                 error!("failed to play audio file `{}`: {}", path, e);
             }
-            info!("play start");
+            info!("play end");
+            std::thread::sleep(std::time::Duration::from_secs_f64(6.3));
         });
         Ok(())
 
@@ -115,7 +117,7 @@ impl BadBuffer {
 
 impl Source for BadBuffer {
     fn current_frame_len(&self) -> Option<usize> {
-        self.current_frame_len
+        None
     }
 
     fn channels(&self) -> u16 {
