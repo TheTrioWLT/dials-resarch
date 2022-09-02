@@ -18,12 +18,13 @@ impl DialRange {
         value <= self.end && value >= self.start
     }
 
+    /// Returns a random value that is near the provided value within half of the maximum range
     pub fn random_near(&self, value: f32) -> f32 {
         // If we should increase or decrease
         let decrease: bool = rand::random();
 
         let random_magnitude = (self.end - self.start) * rand::random::<f32>();
-        let mut tamed_magnitude = random_magnitude / 5.0;
+        let mut tamed_magnitude = random_magnitude / 2.0;
 
         if decrease {
             tamed_magnitude *= -1.0;
@@ -44,14 +45,15 @@ impl DialRange {
     /// but not too quickly. It takes into account the current value so that it can drift to the
     /// closer side
     pub fn slightly_out(&self, value: f32) -> f32 {
-        let halfway = (self.end - self.start) / 2.0;
+        let halfway = (self.end - self.start) / 2.0 + self.start;
+        let amount = rand::random::<f32>() * 400.0;
 
         if value <= halfway {
             // Here we will choose a value that is less than our range
-            self.start - 100.0
+            self.start - amount
         } else {
             // Here we will choose a value that is greater than our range
-            self.end + 100.0
+            self.end + amount
         }
     }
 }
@@ -102,14 +104,14 @@ pub struct Dial {
     random_path: VecDeque<PathSegment>,
     segment_time: f32,
     time_to_drift: f32,
-    travel_direction: f32
+    travel_direction: f32,
 }
 
 impl Dial {
     pub fn new(dial_id: usize, in_range: DialRange, key: char, time_to_drift: f32) -> Self {
         let random_path = generate_random_dial_path(&in_range, time_to_drift);
 
-        let dial = Self {
+        Self {
             value: in_range.random_in(),
             dial_id,
             in_range,
@@ -119,13 +121,7 @@ impl Dial {
             segment_time: 0.0,
             time_to_drift,
             travel_direction: 1.0
-        };
-
-        println!("{} {:#?}", dial.dial_id, dial.in_range);
-        println!("{:#?}", dial.random_path);
-        println!("------------");
-
-        dial
+        }
     }
 
     pub fn reset(&mut self) {
@@ -207,13 +203,15 @@ impl PathSegment {
 
     /// Returns 1.0 if the segment has the value increasing, and -1.0 if it is decreasing
     fn travel_direction(&self) -> f32 {
-        if self.start < self.end { 1.0 } else { 0.0 }
+        if self.start < self.end { 1.0 } else { -1.0 }
     }
 }
 
+/// Generates a new random dial path for the dial to perform within the time_to_drift, and within
+/// the given range.
 fn generate_random_dial_path(range: &DialRange, time_to_drift: f32) -> VecDeque<PathSegment> {
-    const MAX_PATH_SEGMENTS: usize = 5;
-    const MIN_PATH_SEGMENTS: usize = 2;
+    const MAX_PATH_SEGMENTS: usize = 8;
+    const MIN_PATH_SEGMENTS: usize = 4;
 
     let num: f32 = rand::random();
     let num_segments = ((MAX_PATH_SEGMENTS as f32 * num) as usize).max(MIN_PATH_SEGMENTS);
