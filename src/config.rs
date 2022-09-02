@@ -1,4 +1,5 @@
-use serde::{Deserialize, Serialize};
+use crate::ball::BallVelocity;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -14,6 +15,7 @@ pub struct Config {
 pub struct Ball {
     pub random_direction_change_time_min: f32,
     pub random_direction_change_time_max: f32,
+    pub velocity_meter: BallVelocity,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,6 +53,7 @@ impl Default for Config {
             ball: Ball {
                 random_direction_change_time_min: 1.0,
                 random_direction_change_time_max: 8.0,
+                velocity_meter: BallVelocity::Small,
             },
             dials: (1u32..=5)
                 .map(|i| Dial {
@@ -70,6 +73,37 @@ impl Default for Config {
                 .collect(),
 
             output_data_path: None,
+        }
+    }
+}
+
+impl Serialize for BallVelocity {
+    fn serialize<S>(&self, se: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            BallVelocity::Small => "small",
+            BallVelocity::Medium => "medium",
+            BallVelocity::Fast => "fast",
+        };
+        s.serialize(se)
+    }
+}
+
+impl<'de> Deserialize<'de> for BallVelocity {
+    fn deserialize<D>(de: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(de)?;
+        match s.as_str() {
+            "small" => Ok(BallVelocity::Small),
+            "medium" => Ok(BallVelocity::Medium),
+            "fast" => Ok(BallVelocity::Fast),
+            _ => Err(serde::de::Error::custom(format!(
+                "Unknown ball velocity `{s}`"
+            ))),
         }
     }
 }

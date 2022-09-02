@@ -27,7 +27,7 @@ pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
 lazy_static! {
     static ref STATE: Mutex<AppState> = Mutex::new(AppState {
         dials: Vec::new(),
-        ball: Ball::new(0.0, 0.0),
+        ball: Ball::new(0.0, 0.0, ball::BallVelocity::Small),
         input_axes: Vec2::ZERO,
         input_x: [0.0, 0.0],
         input_y: [0.0, 0.0],
@@ -86,8 +86,11 @@ pub fn run() {
         let mut state = STATE.lock().unwrap();
 
         state.dials = dials;
-        state.ball.random_direction_change_time_min = config.ball.random_direction_change_time_min;
-        state.ball.random_direction_change_time_max = config.ball.random_direction_change_time_max;
+        state.ball = Ball::new(
+            config.ball.random_direction_change_time_min,
+            config.ball.random_direction_change_time_max,
+            config.ball.velocity_meter,
+        );
     }
 
     validate_config(&mut config);
