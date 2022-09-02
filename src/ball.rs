@@ -1,22 +1,20 @@
-use egui::epaint::CircleShape;
+use eframe::{egui, emath::Vec2};
 use egui::Pos2;
 
-// Frame percentage rather than pixels
+// Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
-
-const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
 const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 
 // TODO: Move to be read from the configuration file!
 // This is specified in the normalized vector position units per second
-const BALL_START_VELOCITY: Pos2 = Pos2::new(0.25, 0.35);
+const BALL_START_VELOCITY: Vec2 = Vec2::new(0.25, 0.35);
 
-const BALL_NUDGE_RATE: f32 = 0.01;
+const BALL_NUDGE_RATE: f32 = 0.003;
 
 pub struct Ball {
     pos: Pos2,
-    velocity: Pos2,
+    velocity: Vec2,
 }
 
 impl Ball {
@@ -41,27 +39,7 @@ impl Ball {
     /// The center of the screen would be the (screen_width / 2, screen_height / 2) this can be
     /// translated to (0.0, 0.0).
     ///
-    pub fn draw(&mut self, painter: &egui::Painter, frame_rect: &egui::Rect) {
-        let frame_center = frame_rect.center();
-        // The frame is guaranteed to be square
-        let frame_width = frame_rect.width();
-        let half_frame_width = frame_width / 2.0;
-
-        let ball_center = Pos2::new(
-            frame_center.x + self.pos.x * half_frame_width,
-            frame_center.y + self.pos.y * half_frame_width,
-        );
-
-        let ball_pixel_radius = BALL_RADIUS * half_frame_width;
-
-        painter.add(egui::Shape::Circle(CircleShape::filled(
-            ball_center,
-            ball_pixel_radius,
-            BALL_COLOR,
-        )));
-    }
-
-    pub fn update(&mut self, input_axes: &egui::Pos2, delta_time: f32) {
+    pub fn update(&mut self, input_axes: Vec2, delta_time: f32) {
         // Update the ball's position
         self.pos.x += self.velocity.x * delta_time;
         self.pos.y += self.velocity.y * delta_time;
@@ -90,6 +68,10 @@ impl Ball {
             self.pos.y = 1.0 - BALL_RADIUS;
             self.velocity.y = -self.velocity.y.abs();
         }
+    }
+
+    pub fn pos(&self) -> Pos2 {
+        self.pos
     }
 }
 
