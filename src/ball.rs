@@ -7,7 +7,9 @@ use rand::prelude::*;
 // Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
 
-//These are constant ratios, so the intial velocity is always random
+const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
+
+//
 const BALL_SMALL_VELOCITY: f32 = 0.75;
 const BALL_MEDIUM_VELOCITY: f32 = 1.0;
 const BALL_FAST_VELOCITY: f32 = 1.25;
@@ -118,7 +120,7 @@ impl Ball {
 fn new_vel(length: f32) -> Vec2 {
     let mut rng = rand::thread_rng();
 
-    let radians: f32 = rng.gen_range(0.0..2.0 * f32::consts::PI) as f32;
+    let radians = rng.gen_range(0.0..2.0 * f32::consts::PI);
 
     let (x, y) = (radians.cos(), radians.sin());
 
