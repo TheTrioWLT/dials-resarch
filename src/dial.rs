@@ -1,3 +1,4 @@
+use log::trace;
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Instant};
 
@@ -140,6 +141,7 @@ impl Dial {
     fn on_out_of_range(&mut self) {
         // we preleaded each audio file so this shouldn't fail, and if it does we don't care
         let _ = self.audio.play(&self.alarm_path);
+        trace!("play");
         self.alarm_fired = true;
     }
 

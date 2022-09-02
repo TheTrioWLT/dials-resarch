@@ -66,7 +66,8 @@ impl AudioManager {
         let path = path.to_owned();
 
         self.pool.spawn(move || {
-            if let Err(e) = handle.play_raw(sample) {
+            let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+            if let Err(e) = stream_handle.play_raw(sample) {
                 error!("failed to play audio file `{}`: {}", path, e);
             }
         });
