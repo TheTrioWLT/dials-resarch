@@ -30,7 +30,6 @@ pub struct Ball {
     velocity_change_time_at: f32,
     pub random_direction_change_time_min: f32,
     pub random_direction_change_time_max: f32,
-    pub velocity_meter: BallVelocity,
 }
 
 impl Ball {
@@ -54,7 +53,6 @@ impl Ball {
             velocity_change_time_at: 0.0,
             random_direction_change_time_min,
             random_direction_change_time_max,
-            velocity_meter,
         }
     }
 
