@@ -90,32 +90,29 @@ impl DialWidget {
                 last_vertex_pos = position;
             }
 
-            #[cfg(feature = "debugging")]
-            {
-                // If in debugging mode, this will draw the dial's in-range
-                let start_radians = (self.in_range.start / DIAL_MAX_VALUE) * std::f32::consts::TAU
-                    + DIAL_ANGLE_OFFSET;
-                let end_radians = (self.in_range.end / DIAL_MAX_VALUE) * std::f32::consts::TAU
-                    + DIAL_ANGLE_OFFSET;
-                let radians_dist = (end_radians - start_radians) / 100.0;
-                let start_x = (radius + DIAL_BAR_WIDTH * 1.0) * f32::cos(start_radians);
-                let start_y = (radius + DIAL_BAR_WIDTH * 1.0) * f32::sin(start_radians);
+            // Draw the dial's in-range
+            let start_radians = (self.in_range.start / DIAL_MAX_VALUE) * std::f32::consts::TAU
+                + DIAL_ANGLE_OFFSET;
+            let end_radians = (self.in_range.end / DIAL_MAX_VALUE) * std::f32::consts::TAU
+                + DIAL_ANGLE_OFFSET;
+            let radians_dist = (end_radians - start_radians) / 100.0;
+            let start_x = (radius + DIAL_BAR_WIDTH * 1.0) * f32::cos(start_radians);
+            let start_y = (radius + DIAL_BAR_WIDTH * 1.0) * f32::sin(start_radians);
 
-                let mut last_vertex_pos = Pos2::new(center.x + start_x, center.y + start_y);
+            let mut last_vertex_pos = Pos2::new(center.x + start_x, center.y + start_y);
 
-                for i in 0..100 {
-                    let angle = (i as f32 * radians_dist) + start_radians;
-                    let x = (radius + DIAL_BAR_WIDTH * 1.0) * f32::cos(angle);
-                    let y = (radius + DIAL_BAR_WIDTH * 1.0) * f32::sin(angle);
-                    let position = Pos2::new(x + center.x, y + center.y);
+            for i in 0..100 {
+                let angle = (i as f32 * radians_dist) + start_radians;
+                let x = (radius + DIAL_BAR_WIDTH * 1.0) * f32::cos(angle);
+                let y = (radius + DIAL_BAR_WIDTH * 1.0) * f32::sin(angle);
+                let position = Pos2::new(x + center.x, y + center.y);
 
-                    painter.add(egui::Shape::LineSegment {
-                        points: [last_vertex_pos, position],
-                        stroke: Stroke::new(DIAL_BAR_WIDTH, Color32::LIGHT_GREEN),
-                    });
+                painter.add(egui::Shape::LineSegment {
+                    points: [last_vertex_pos, position],
+                    stroke: Stroke::new(DIAL_BAR_WIDTH, Color32::LIGHT_GREEN),
+                });
 
-                    last_vertex_pos = position;
-                }
+                last_vertex_pos = position;
             }
 
             // Draw the needle

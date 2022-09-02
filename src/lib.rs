@@ -75,9 +75,9 @@ pub fn run() {
             let alarm = alarms[dial.alarm.as_str()];
             Dial::new(
                 id,
-                dial.rate,
                 DialRange::new(dial.start, dial.end),
                 alarm.clear_key,
+                dial.alarm_time
             )
         })
         .collect();
