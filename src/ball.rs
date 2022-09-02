@@ -74,9 +74,10 @@ impl Ball {
         if self.time_running >= self.velocity_change_time_at {
             let radians: f32 = rng.gen_range(0.0..2.0 * f32::consts::PI);
             let (new_x, new_y) = (radians.cos(), radians.sin());
-            let hyp = f32::sqrt(self.velocity.x.powi(2) + self.velocity.y.powi(2));
-
-            self.velocity = Vec2::new(new_x * hyp, new_y * hyp);
+            self.velocity = Vec2::new(
+                new_x * self.velocity.length(),
+                new_y * self.velocity.length(),
+            );
             self.time_running = 0.0;
             self.velocity_change_time_at = rng.gen_range(
                 self.random_direction_change_time_min..=self.random_direction_change_time_max,
@@ -88,7 +89,6 @@ impl Ball {
         let hyp = f32::sqrt(self.velocity.x.powi(2) + self.velocity.y.powi(2));
 
         self.pos.x += input_axes.x * BALL_NUDGE_RATE * hyp;
-        dbg!(self.pos.x);
         // Corrects for the fact that positive y here is down
         self.pos.y -= input_axes.y * BALL_NUDGE_RATE * hyp;
 
