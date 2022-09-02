@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::{debug, error, info};
+use log::{error, info};
 use rodio::{source::Source, Decoder, OutputStream};
 use std::collections::HashMap;
 use std::fs::File;
