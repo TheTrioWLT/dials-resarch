@@ -77,6 +77,7 @@ pub fn run() -> Result<()> {
             println!("does the file exist?");
             std::process::exit(1);
         }
+        audio.play(&alarm.audio_path).unwrap();
     }
 
     let dials: Vec<_> = config

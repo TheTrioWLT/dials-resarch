@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::{error, info};
+use log::{debug, error, info};
 use rodio::OutputStreamHandle;
 use rodio::{source::Source, Decoder, OutputStream};
 use std::collections::HashMap;
@@ -67,9 +67,11 @@ impl AudioManager {
 
         self.pool.spawn(move || {
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+            info!("play start");
             if let Err(e) = stream_handle.play_raw(sample) {
                 error!("failed to play audio file `{}`: {}", path, e);
             }
+            info!("play start");
         });
         Ok(())
 
@@ -133,9 +135,16 @@ impl Iterator for BadBuffer {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.samples.get(self.offset).map(|v| {
-            self.offset += 1;
-            *v
-        })
+        if self.offset == 0 {
+            debug!("iterating at 0");
+        }
+        self.samples
+            .get(self.offset)
+            .map(|v| {
+                self.offset += 1;
+                *v
+            })
+            .ok_or_else(|| debug!("finished iterating {}", self.offset))
+            .ok()
     }
 }
