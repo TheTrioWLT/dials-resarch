@@ -1,42 +1,48 @@
 use anyhow::Result;
 use log::{debug, error, info};
-use rodio::OutputStreamHandle;
-use rodio::{buffer::SamplesBuffer, source::Source, Decoder, OutputStream};
+use rodio::{source::Source, Decoder, OutputStream};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
 pub struct AudioManager {
     samples: Mutex<HashMap<String, BadBuffer>>,
-    stream_handle: Arc<OutputStreamHandle>,
-    pool: rayon::ThreadPool,
+    _thread: std::thread::JoinHandle<()>,
+    tx: Mutex<mpsc::Sender<BadBuffer>>,
 }
 
 impl std::fmt::Debug for AudioManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AudioManager")
-            .field("pool", &self.pool)
-            .finish()
+        f.debug_struct("AudioManager").finish()
     }
 }
 
 impl AudioManager {
     pub fn new() -> Result<Self> {
-        // Get a output stream handle to the default physical sound device
-        let (_stream, stream_handle) = OutputStream::try_default()?;
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(2)
-            .build()
-            .unwrap();
-
+        let (tx, rx) = mpsc::channel();
         //source.convert_samples()
         Ok(Self {
             samples: Mutex::new(HashMap::new()),
-            stream_handle: Arc::new(stream_handle),
-            pool,
+            _thread: std::thread::spawn(move || Self::audio_thread(rx)),
+            tx: Mutex::new(tx),
         })
+    }
+
+    fn audio_thread(rx: mpsc::Receiver<BadBuffer>) {
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+
+        loop {
+            match rx.recv() {
+                Err(_) => break,
+                Ok(sample) => {
+                    if let Err(e) = stream_handle.play_raw(sample) {
+                        error!("failed to play audio file {}", e);
+                    }
+                }
+            }
+        }
     }
 
     /// Loads a file into the samples cache if it hasn't been loaded already.
@@ -62,30 +68,14 @@ impl AudioManager {
     /// Does its best to play the given alarm sound
     pub fn play(&self, path: &str) -> Result<()> {
         let sample = self.preload_file(path)?;
-        let handle = Arc::clone(&self.stream_handle);
-        let path = path.to_owned();
-
-        info!("called play");
-        self.pool.spawn(move || {
-            let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-            info!("play start");
-            if let Err(e) = stream_handle.play_raw(sample) {
-                error!("failed to play audio file `{}`: {}", path, e);
-            }
-            info!("play end");
-            std::thread::sleep(std::time::Duration::from_secs_f64(6.3));
-        });
+        let guard = self.tx.lock().unwrap();
+        let _ = guard.send(sample);
         Ok(())
-
-        // The sound plays in a separate audio thread,
-        // so we need to keep the main thread alive while it's playing.
-        //std::thread::sleep(std::time::Duration::from_secs_f64(6.3));
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct BadBuffer {
-    current_frame_len: Option<usize>,
     channels: u16,
     sample_rate: u32,
     total_duration: Option<Duration>,
@@ -98,14 +88,12 @@ impl BadBuffer {
     where
         S: Source<Item = f32> + Send + 'static,
     {
-        let current_frame_len = source.current_frame_len();
         let channels = source.channels();
         let sample_rate = source.sample_rate();
         let total_duration = source.total_duration();
         let samples = Arc::new(source.into_iter().collect());
 
         Self {
-            current_frame_len,
             channels,
             sample_rate,
             total_duration,
@@ -137,16 +125,9 @@ impl Iterator for BadBuffer {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.offset == 0 {
-            debug!("iterating at 0");
-        }
-        self.samples
-            .get(self.offset)
-            .map(|v| {
-                self.offset += 1;
-                *v
-            })
-            .ok_or_else(|| debug!("finished iterating {}", self.offset))
-            .ok()
+        self.samples.get(self.offset).map(|v| {
+            self.offset += 1;
+            *v
+        })
     }
 }

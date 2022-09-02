@@ -70,17 +70,13 @@ pub fn run() -> Result<()> {
     // Maps alarm names to alarm structs
     let alarms: HashMap<&str, &config::Alarm> =
         config.alarms.iter().map(|d| (d.name.as_str(), d)).collect();
-    let mut first = true;
+
     for alarm in alarms.values() {
         if let Err(e) = audio.preload_file(&alarm.audio_path) {
             println!("failed to load audio file `{}`:", &alarm.audio_path);
             println!("{}", e);
             println!("does the file exist?");
             std::process::exit(1);
-        }
-        if first {
-            audio.play(&alarm.audio_path).unwrap();
-            first = false;
         }
     }
 
