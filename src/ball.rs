@@ -1,5 +1,8 @@
+use std::f32;
+
 use eframe::{egui, emath::Vec2};
 use egui::Pos2;
+use rand::prelude::*;
 
 // Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
@@ -10,11 +13,13 @@ const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 // This is specified in the normalized vector position units per second
 const BALL_START_VELOCITY: Vec2 = Vec2::new(0.25, 0.35);
 
-const BALL_NUDGE_RATE: f32 = 0.003;
+const BALL_NUDGE_RATE: f32 = 0.0015;
 
 pub struct Ball {
     pos: Pos2,
     velocity: Vec2,
+    time_running: f32,
+    velocity_change_timer: f32,
 }
 
 impl Ball {
@@ -24,6 +29,8 @@ impl Ball {
         Self {
             pos: BALL_START_POS,
             velocity: BALL_START_VELOCITY,
+            time_running: 0.0,
+            velocity_change_timer: 0.0,
         }
     }
 
@@ -40,7 +47,17 @@ impl Ball {
     /// translated to (0.0, 0.0).
     ///
     pub fn update(&mut self, input_axes: Vec2, delta_time: f32) {
-        // Update the ball's position
+        let mut rng = rand::thread_rng();
+
+        if self.time_running >= self.velocity_change_timer {
+            let radians: f32 = rng.gen_range(0.0..2.0 * f32::consts::PI);
+            let (new_x, new_y) = (radians.cos(), radians.sin());
+            let hyp = f32::sqrt(BALL_START_VELOCITY.x.powi(2) + BALL_START_VELOCITY.y.powi(2));
+
+            self.velocity = Vec2::new(new_x * hyp, new_y * hyp);
+            self.time_running = 0.0;
+            self.velocity_change_timer = rng.gen_range(1..8) as f32;
+        }
         self.pos.x += self.velocity.x * delta_time;
         self.pos.y += self.velocity.y * delta_time;
 
@@ -51,6 +68,7 @@ impl Ball {
         // This is for bounds checking on the ball
         // The addition or substraction inside the logic is so the circle does not use the center as
         // the x or y location. This way the circle would not go through some of the borders.
+
         if (self.pos.x + BALL_RADIUS) >= 1.0 {
             self.pos.x = 1.0 - BALL_RADIUS;
             self.velocity.x = -self.velocity.x.abs();
@@ -68,6 +86,8 @@ impl Ball {
             self.pos.y = 1.0 - BALL_RADIUS;
             self.velocity.y = -self.velocity.y.abs();
         }
+
+        self.time_running += delta_time;
     }
 
     pub fn pos(&self) -> Pos2 {
