@@ -19,18 +19,25 @@ pub struct Ball {
     pos: Pos2,
     velocity: Vec2,
     time_running: f32,
-    velocity_change_timer: f32,
+    velocity_change_time_at: f32,
+    pub random_direction_change_time_min: f32,
+    pub random_direction_change_time_max: f32,
 }
 
 impl Ball {
     /// Creates a new ball that begins in the default starting position with the ball's correct
     /// starting velocity
-    pub fn new() -> Self {
+    pub fn new(
+        random_direction_change_time_min: f32,
+        random_direction_change_time_max: f32,
+    ) -> Self {
         Self {
             pos: BALL_START_POS,
             velocity: BALL_START_VELOCITY,
             time_running: 0.0,
-            velocity_change_timer: 0.0,
+            velocity_change_time_at: 0.0,
+            random_direction_change_time_min,
+            random_direction_change_time_max,
         }
     }
 
@@ -49,14 +56,16 @@ impl Ball {
     pub fn update(&mut self, input_axes: Vec2, delta_time: f32) {
         let mut rng = rand::thread_rng();
 
-        if self.time_running >= self.velocity_change_timer {
+        if self.time_running >= self.velocity_change_time_at {
             let radians: f32 = rng.gen_range(0.0..2.0 * f32::consts::PI);
             let (new_x, new_y) = (radians.cos(), radians.sin());
             let hyp = f32::sqrt(BALL_START_VELOCITY.x.powi(2) + BALL_START_VELOCITY.y.powi(2));
 
             self.velocity = Vec2::new(new_x * hyp, new_y * hyp);
             self.time_running = 0.0;
-            self.velocity_change_timer = rng.gen_range(1..8) as f32;
+            self.velocity_change_time_at = rng.gen_range(
+                self.random_direction_change_time_min..=self.random_direction_change_time_max,
+            ) as f32;
         }
         self.pos.x += self.velocity.x * delta_time;
         self.pos.y += self.velocity.y * delta_time;
@@ -97,6 +106,6 @@ impl Ball {
 
 impl Default for Ball {
     fn default() -> Self {
-        Self::new()
+        Self::new(0.0, 0.0)
     }
 }
