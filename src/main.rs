@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-fn main() {
-    dials_research::run();
+fn main() -> anyhow::Result<()> {
+    pretty_env_logger::init();
+    dials_research::run()
 }

@@ -13,7 +13,7 @@ pub struct Config {
     pub alarms: Vec<Alarm>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Ball {
     pub name: String,
     /// The action that this ball takes.
@@ -25,7 +25,7 @@ pub struct Ball {
     pub random_direction_change_time: Option<f64>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Dial {
     /// The name of the alarm this dial uses
     pub alarm: String,
@@ -38,7 +38,7 @@ pub struct Dial {
     pub rate: f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Alarm {
     /// The user defined name of this alarm. Used to match up which alarm is being used in
     /// [`Dial::alarm`]
@@ -52,6 +52,7 @@ pub struct Alarm {
     pub clear_key: char,
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum BallAction {
     /// The ball moves at a random speed
     RandomSpeed,
