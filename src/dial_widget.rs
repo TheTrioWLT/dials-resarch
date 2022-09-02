@@ -103,7 +103,7 @@ impl DialWidget {
 
                 let mut last_vertex_pos = Pos2::new(center.x + start_x, center.y + start_y);
 
-                for i in 1..101 {
+                for i in 0..100 {
                     let angle = (i as f32 * radians_dist) + start_radians;
                     let x = (radius + DIAL_BAR_WIDTH * 1.0) * f32::cos(angle);
                     let y = (radius + DIAL_BAR_WIDTH * 1.0) * f32::sin(angle);
