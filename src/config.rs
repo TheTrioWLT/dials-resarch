@@ -79,7 +79,7 @@ impl Default for Config {
                     alarm: i.to_string(),
                     start: i as f32 * 200.0,
                     end: i as f32 * 200.0 + range_size,
-                    alarm_time: i as f32,
+                    alarm_time: 8.0 + (i as f32) * 6.0,
                 })
                 .collect(),
 
