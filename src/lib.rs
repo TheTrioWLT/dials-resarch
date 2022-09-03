@@ -11,7 +11,7 @@ use std::{
 
 use app::{AppState, DialsApp};
 
-use crate::dial::DialReaction;
+use crate::{dial::DialReaction, ball::Ball};
 
 mod app;
 mod ball;
@@ -90,6 +90,11 @@ pub fn run() -> Result<()> {
         let mut state = STATE.lock().unwrap();
 
         state.dials = dials;
+        state.ball = Ball::new(
+            config.ball.random_direction_change_time_min,
+            config.ball.random_direction_change_time_max,
+            config.ball.velocity_meter,
+        );
     }
 
     validate_config(&mut config);
@@ -148,15 +153,6 @@ fn model(state: &Mutex<AppState>) {
 /// Validates a config file, or exits the program with an error printed to the command line on how
 /// to fix the validation
 fn validate_config(config: &mut config::Config) {
-    if let Some(active) = &config.active_ball {
-        let ball_names: Vec<_> = config.balls.iter().map(|b| &b.name).collect();
-        if !ball_names.contains(&active) {
-            println!("active ball `{active}` is missing");
-            println!("available balls are {ball_names:?}");
-            std::process::exit(1);
-        }
-    }
-
     let alarm_names: Vec<_> = config.alarms.iter().map(|b| &b.name).collect();
     for dial in &config.dials {
         let alarm_name = &dial.alarm;

@@ -31,7 +31,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             dials: Vec::new(),
-            ball: Ball::new(),
+            ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
             input_axes: Vec2::ZERO,
             input_x: [0.0, 0.0],
             input_y: [0.0, 0.0],
