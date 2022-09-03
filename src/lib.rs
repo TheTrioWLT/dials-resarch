@@ -78,10 +78,10 @@ pub fn run() -> Result<()> {
             let alarm = alarms[dial.alarm.as_str()];
             Dial::new(
                 id,
-                dial.rate,
                 DialRange::new(dial.start, dial.end),
                 alarm,
                 Arc::clone(&audio),
+                dial.alarm_time,
             )
         })
         .collect();
