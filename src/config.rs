@@ -45,7 +45,6 @@ pub struct Alarm {
     pub clear_key: char,
 }
 
-
 impl Default for Config {
     fn default() -> Self {
         let range_size = 4000.0;

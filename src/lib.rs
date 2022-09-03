@@ -11,7 +11,7 @@ use std::{
 
 use app::{AppState, DialsApp};
 
-use crate::{dial::DialReaction, ball::Ball};
+use crate::{ball::Ball, dial::DialReaction};
 
 mod app;
 mod ball;
