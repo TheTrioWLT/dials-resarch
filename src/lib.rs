@@ -1,17 +1,17 @@
-use ball::Ball;
+use anyhow::Result;
+use audio::AudioManager;
 use dial::{Dial, DialRange};
-use eframe::emath::Vec2;
 use lazy_static::lazy_static;
 use std::{
-    collections::{HashMap, VecDeque},
-    sync::Mutex,
+    collections::HashMap,
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
 
 use app::{AppState, DialsApp};
 
-use crate::dial::DialReaction;
+use crate::{ball::Ball, dial::DialReaction};
 
 mod app;
 mod ball;
@@ -25,18 +25,10 @@ pub mod config;
 pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
 
 lazy_static! {
-    static ref STATE: Mutex<AppState> = Mutex::new(AppState {
-        dials: Vec::new(),
-        ball: Ball::new(),
-        input_axes: Vec2::ZERO,
-        input_x: [0.0, 0.0],
-        input_y: [0.0, 0.0],
-        pressed_key: None,
-        queued_alarms: VecDeque::new()
-    });
+    static ref STATE: Mutex<AppState> = Mutex::new(AppState::new());
 }
 
-pub fn run() {
+pub fn run() -> Result<()> {
     let options = eframe::NativeOptions {
         transparent: true,
         vsync: true,
@@ -56,16 +48,27 @@ pub fn run() {
         Err(_) => {
             // Write out default config if none existed before
             let config = config::Config::default();
-            let toml = toml::to_string(&config).unwrap();
-            std::fs::write(DEFAULT_INPUT_PATH, &toml).unwrap();
+            let toml = toml::to_string(&config)?;
+            std::fs::write(DEFAULT_INPUT_PATH, &toml)?;
 
             config
         }
     };
 
+    let audio = Arc::new(AudioManager::new()?);
+
     // Maps alarm names to alarm structs
     let alarms: HashMap<&str, &config::Alarm> =
         config.alarms.iter().map(|d| (d.name.as_str(), d)).collect();
+
+    for alarm in alarms.values() {
+        if let Err(e) = audio.preload_file(&alarm.audio_path) {
+            println!("failed to load audio file `{}`:", &alarm.audio_path);
+            println!("{}", e);
+            println!("does the file exist?");
+            std::process::exit(1);
+        }
+    }
 
     let dials: Vec<_> = config
         .dials
@@ -76,7 +79,8 @@ pub fn run() {
             Dial::new(
                 id,
                 DialRange::new(dial.start, dial.end),
-                alarm.clear_key,
+                alarm,
+                Arc::clone(&audio),
                 dial.alarm_time,
             )
         })
@@ -86,6 +90,11 @@ pub fn run() {
         let mut state = STATE.lock().unwrap();
 
         state.dials = dials;
+        state.ball = Ball::new(
+            config.ball.random_direction_change_time_min,
+            config.ball.random_direction_change_time_max,
+            config.ball.velocity_meter,
+        );
     }
 
     validate_config(&mut config);
@@ -141,16 +150,9 @@ fn model(state: &Mutex<AppState>) {
     }
 }
 
+/// Validates a config file, or exits the program with an error printed to the command line on how
+/// to fix the validation
 fn validate_config(config: &mut config::Config) {
-    if let Some(active) = &config.active_ball {
-        let ball_names: Vec<_> = config.balls.iter().map(|b| &b.name).collect();
-        if !ball_names.contains(&active) {
-            println!("active ball `{active}` is missing");
-            println!("available balls are {ball_names:?}");
-            std::process::exit(1);
-        }
-    }
-
     let alarm_names: Vec<_> = config.alarms.iter().map(|b| &b.name).collect();
     for dial in &config.dials {
         let alarm_name = &dial.alarm;
@@ -161,12 +163,12 @@ fn validate_config(config: &mut config::Config) {
         }
     }
     for alarm in &mut config.alarms {
-        alarm.clear_key = alarm
-            .clear_key
-            .to_uppercase()
-            .to_string()
-            .chars()
-            .next()
-            .unwrap();
+        match alarm.clear_key.to_uppercase().to_string().chars().next() {
+            Some(key) => alarm.clear_key = key,
+            None => {
+                println!("alarm `{}` is missing a clear key", alarm.name);
+                std::process::exit(1);
+            }
+        }
     }
 }

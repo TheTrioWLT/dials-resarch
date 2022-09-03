@@ -1,5 +1,6 @@
+use crate::config::Alarm;
 use serde::{Deserialize, Serialize};
-use std::{collections::VecDeque, thread, time::Instant};
+use std::{collections::VecDeque, sync::Arc, time::Instant};
 
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
 
@@ -100,7 +101,9 @@ pub struct Dial {
     dial_id: usize,
     in_range: DialRange,
     key: char,
+    alarm_path: String,
     alarm_fired: bool,
+    audio: Arc<crate::audio::AudioManager>,
     random_path: VecDeque<PathSegment>,
     segment_time: f32,
     time_to_drift: f32,
@@ -108,19 +111,27 @@ pub struct Dial {
 }
 
 impl Dial {
-    pub fn new(dial_id: usize, in_range: DialRange, key: char, time_to_drift: f32) -> Self {
+    pub fn new(
+        dial_id: usize,
+        in_range: DialRange,
+        alarm: &Alarm,
+        audio: Arc<crate::audio::AudioManager>,
+        time_to_drift: f32,
+    ) -> Self {
         let random_path = generate_random_dial_path(&in_range, time_to_drift);
 
         Self {
             value: in_range.random_in(),
             dial_id,
             in_range,
-            key,
+            key: alarm.clear_key,
+            alarm_path: alarm.audio_path.clone(),
             alarm_fired: false,
             random_path,
             segment_time: 0.0,
             time_to_drift,
             travel_direction: 1.0,
+            audio,
         }
     }
 
@@ -173,8 +184,14 @@ impl Dial {
     }
 
     fn on_out_of_range(&mut self) {
-        thread::spawn(|| crate::audio::play().unwrap());
+        // we preleaded each audio file so this shouldn't fail, and if it does we don't care
+        log::info!("out of range");
+        let _ = self.audio.play(&self.alarm_path);
         self.alarm_fired = true;
+    }
+
+    pub fn cheese_play(&self) {
+        let _ = self.audio.play(&self.alarm_path);
     }
 }
 
