@@ -1,28 +1,21 @@
+use crate::ball::BallVelocity;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    /// The name of the ball to use for this experient
-    pub active_ball: Option<String>,
-
     /// Where the output data gets stored to once the experiment is done
     pub output_data_path: Option<String>,
 
-    pub balls: Vec<Ball>,
+    pub ball: Ball,
     pub dials: Vec<Dial>,
     pub alarms: Vec<Alarm>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Ball {
-    pub name: String,
-    /// The action that this ball takes.
-    ///
-    /// Can be one of `random_direction`, `random_speed`, or `random_direction_change`
-    pub action: BallAction,
-
-    /// How quickly a ball configured for `random_direction_change` changes speed.
-    pub random_direction_change_time: Option<f64>,
+    pub random_direction_change_time_min: f32,
+    pub random_direction_change_time_max: f32,
+    pub velocity_meter: BallVelocity,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -52,26 +45,16 @@ pub struct Alarm {
     pub clear_key: char,
 }
 
-pub enum BallAction {
-    /// The ball moves at a random speed
-    RandomSpeed,
-
-    /// The ball moves in a random direction from the crosshair
-    RandomDirection,
-
-    /// The ball changes directions randomly in a certain interval
-    RandomDirectionChange,
-}
-
 impl Default for Config {
     fn default() -> Self {
         let range_size = 4000.0;
+        println!("Happ");
         Config {
-            balls: vec![Ball {
-                name: "Ball 1".to_owned(),
-                action: BallAction::RandomSpeed,
-                random_direction_change_time: Some(4.0),
-            }],
+            ball: Ball {
+                random_direction_change_time_min: 1.0,
+                random_direction_change_time_max: 8.0,
+                velocity_meter: BallVelocity::Small,
+            },
             dials: (1u32..=5)
                 .map(|i| Dial {
                     alarm: i.to_string(),
@@ -89,38 +72,37 @@ impl Default for Config {
                 })
                 .collect(),
 
-            active_ball: Some("Ball 1".to_owned()),
             output_data_path: None,
         }
     }
 }
 
-impl Serialize for BallAction {
+impl Serialize for BallVelocity {
     fn serialize<S>(&self, se: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let s = match self {
-            BallAction::RandomSpeed => "random_direction",
-            BallAction::RandomDirection => "random_speed",
-            BallAction::RandomDirectionChange => "random_direction_change",
+            BallVelocity::Small => "small",
+            BallVelocity::Medium => "medium",
+            BallVelocity::Fast => "fast",
         };
         s.serialize(se)
     }
 }
 
-impl<'de> Deserialize<'de> for BallAction {
+impl<'de> Deserialize<'de> for BallVelocity {
     fn deserialize<D>(de: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(de)?;
         match s.as_str() {
-            "random_direction" => Ok(BallAction::RandomDirection),
-            "random_speed" => Ok(BallAction::RandomSpeed),
-            "random_direction_change" => Ok(BallAction::RandomDirectionChange),
+            "small" => Ok(BallVelocity::Small),
+            "medium" => Ok(BallVelocity::Medium),
+            "fast" => Ok(BallVelocity::Fast),
             _ => Err(serde::de::Error::custom(format!(
-                "Unknown ball action `{s}`"
+                "Unknown ball velocity `{s}`"
             ))),
         }
     }

@@ -27,7 +27,7 @@ pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
 lazy_static! {
     static ref STATE: Mutex<AppState> = Mutex::new(AppState {
         dials: Vec::new(),
-        ball: Ball::new(),
+        ball: Ball::new(0.0, 0.0, ball::BallVelocity::Small),
         input_axes: Vec2::ZERO,
         input_x: [0.0, 0.0],
         input_y: [0.0, 0.0],
@@ -86,6 +86,11 @@ pub fn run() {
         let mut state = STATE.lock().unwrap();
 
         state.dials = dials;
+        state.ball = Ball::new(
+            config.ball.random_direction_change_time_min,
+            config.ball.random_direction_change_time_max,
+            config.ball.velocity_meter,
+        );
     }
 
     validate_config(&mut config);
@@ -142,15 +147,6 @@ fn model(state: &Mutex<AppState>) {
 }
 
 fn validate_config(config: &mut config::Config) {
-    if let Some(active) = &config.active_ball {
-        let ball_names: Vec<_> = config.balls.iter().map(|b| &b.name).collect();
-        if !ball_names.contains(&active) {
-            println!("active ball `{active}` is missing");
-            println!("available balls are {ball_names:?}");
-            std::process::exit(1);
-        }
-    }
-
     let alarm_names: Vec<_> = config.alarms.iter().map(|b| &b.name).collect();
     for dial in &config.dials {
         let alarm_name = &dial.alarm;
