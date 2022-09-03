@@ -77,7 +77,7 @@ pub fn run() {
                 id,
                 DialRange::new(dial.start, dial.end),
                 alarm.clear_key,
-                dial.alarm_time
+                dial.alarm_time,
             )
         })
         .collect();

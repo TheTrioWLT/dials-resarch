@@ -37,7 +37,7 @@ pub struct Dial {
 
     /// The absolute time at which this alarm
     /// should sound, aka. when the dial should drift out of range
-    pub alarm_time: f32
+    pub alarm_time: f32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -79,7 +79,7 @@ impl Default for Config {
                     alarm: i.to_string(),
                     start: i as f32 * 200.0,
                     end: i as f32 * 200.0 + range_size,
-                    alarm_time: i as f32
+                    alarm_time: i as f32,
                 })
                 .collect(),
 

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{thread, time::Instant, collections::VecDeque};
+use std::{collections::VecDeque, thread, time::Instant};
 
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
 
@@ -120,7 +120,7 @@ impl Dial {
             random_path,
             segment_time: 0.0,
             time_to_drift,
-            travel_direction: 1.0
+            travel_direction: 1.0,
         }
     }
 
@@ -182,7 +182,7 @@ impl Dial {
 struct PathSegment {
     start: f32,
     end: f32,
-    duration: f32
+    duration: f32,
 }
 
 impl PathSegment {
@@ -203,7 +203,11 @@ impl PathSegment {
 
     /// Returns 1.0 if the segment has the value increasing, and -1.0 if it is decreasing
     fn travel_direction(&self) -> f32 {
-        if self.start < self.end { 1.0 } else { -1.0 }
+        if self.start < self.end {
+            1.0
+        } else {
+            -1.0
+        }
     }
 }
 
@@ -227,7 +231,7 @@ fn generate_random_dial_path(range: &DialRange, time_to_drift: f32) -> VecDeque<
         let segment = PathSegment {
             start: last_value,
             end: next_value,
-            duration
+            duration,
         };
 
         segments.push_back(segment);
@@ -240,7 +244,7 @@ fn generate_random_dial_path(range: &DialRange, time_to_drift: f32) -> VecDeque<
     let last_segment = PathSegment {
         start: last_value,
         end: end_value,
-        duration
+        duration,
     };
 
     segments.push_back(last_segment);
