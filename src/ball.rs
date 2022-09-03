@@ -10,7 +10,7 @@ const BALL_RADIUS: f32 = 0.03;
 const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 
 //
-const BALL_SMALL_VELOCITY: f32 = 0.75;
+const BALL_SLOW_VELOCITY: f32 = 0.75;
 const BALL_MEDIUM_VELOCITY: f32 = 1.0;
 const BALL_FAST_VELOCITY: f32 = 1.25;
 
@@ -18,7 +18,7 @@ const BALL_NUDGE_RATE: f32 = 0.003;
 
 #[derive(Debug, Clone, Copy)]
 pub enum BallVelocity {
-    Small,
+    Slow,
     Medium,
     Fast,
 }
@@ -40,7 +40,7 @@ impl Ball {
         velocity_meter: BallVelocity,
     ) -> Self {
         let length = match velocity_meter {
-            BallVelocity::Small => BALL_SMALL_VELOCITY,
+            BallVelocity::Slow => BALL_SLOW_VELOCITY,
             BallVelocity::Medium => BALL_MEDIUM_VELOCITY,
             BallVelocity::Fast => BALL_FAST_VELOCITY,
         };
@@ -129,6 +129,6 @@ fn new_vel(length: f32) -> Vec2 {
 
 impl Default for Ball {
     fn default() -> Self {
-        Self::new(0.0, 0.0, BallVelocity::Small)
+        Self::new(0.0, 0.0, BallVelocity::Slow)
     }
 }

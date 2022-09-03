@@ -11,14 +11,14 @@ pub struct Config {
     pub alarms: Vec<Alarm>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Ball {
     pub random_direction_change_time_min: f32,
     pub random_direction_change_time_max: f32,
     pub velocity_meter: BallVelocity,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Dial {
     /// The name of the alarm this dial uses
     pub alarm: String,
@@ -31,7 +31,7 @@ pub struct Dial {
     pub rate: f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Alarm {
     /// The user defined name of this alarm. Used to match up which alarm is being used in
     /// [`Dial::alarm`]
@@ -48,12 +48,11 @@ pub struct Alarm {
 impl Default for Config {
     fn default() -> Self {
         let range_size = 4000.0;
-        println!("Happ");
         Config {
             ball: Ball {
                 random_direction_change_time_min: 1.0,
                 random_direction_change_time_max: 8.0,
-                velocity_meter: BallVelocity::Small,
+                velocity_meter: BallVelocity::Slow,
             },
             dials: (1u32..=5)
                 .map(|i| Dial {
@@ -83,7 +82,7 @@ impl Serialize for BallVelocity {
         S: Serializer,
     {
         let s = match self {
-            BallVelocity::Small => "small",
+            BallVelocity::Slow => "slow",
             BallVelocity::Medium => "medium",
             BallVelocity::Fast => "fast",
         };
@@ -98,7 +97,7 @@ impl<'de> Deserialize<'de> for BallVelocity {
     {
         let s = String::deserialize(de)?;
         match s.as_str() {
-            "small" => Ok(BallVelocity::Small),
+            "slow" => Ok(BallVelocity::Slow),
             "medium" => Ok(BallVelocity::Medium),
             "fast" => Ok(BallVelocity::Fast),
             _ => Err(serde::de::Error::custom(format!(

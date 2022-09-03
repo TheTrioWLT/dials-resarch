@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::{thread, time::Instant};
+use std::{sync::Arc, time::Instant};
+
+use crate::config::Alarm;
 
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
 
@@ -59,25 +61,35 @@ impl DialReaction {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Dial {
     value: f32,
     dial_id: usize,
     rate: f32,
     in_range: DialRange,
     key: char,
+    alarm_path: String,
     alarm_fired: bool,
+    audio: Arc<crate::audio::AudioManager>,
 }
 
 impl Dial {
-    pub fn new(dial_id: usize, rate: f32, in_range: DialRange, key: char) -> Self {
+    pub fn new(
+        dial_id: usize,
+        rate: f32,
+        in_range: DialRange,
+        alarm: &Alarm,
+        audio: Arc<crate::audio::AudioManager>,
+    ) -> Self {
         let mut dial = Self {
             value: 0.0,
             dial_id,
             rate,
             in_range,
-            key,
+            key: alarm.clear_key,
+            alarm_path: alarm.audio_path.clone(),
             alarm_fired: false,
+            audio,
         };
 
         // Immediately "reset"
@@ -126,8 +138,14 @@ impl Dial {
     }
 
     fn on_out_of_range(&mut self) {
-        thread::spawn(|| crate::audio::play().unwrap());
+        // we preleaded each audio file so this shouldn't fail, and if it does we don't care
+        //log::info!("out of rannge");
+        //let _ = self.audio.play(&self.alarm_path);
         self.alarm_fired = true;
+    }
+
+    pub fn cheese_play(&self) {
+        let _ = self.audio.play(&self.alarm_path);
     }
 
     fn increment_value(&mut self, increment: f32) {
