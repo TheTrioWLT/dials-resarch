@@ -2,7 +2,7 @@
 
 fn main() -> anyhow::Result<()> {
     env_logger::builder()
-        .format_timestamp_millis()
+        .format_timestamp_micros()
         .filter(Some("dials-research"), log::LevelFilter::Debug)
         .filter(None, log::LevelFilter::Info)
         .init();

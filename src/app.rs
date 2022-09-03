@@ -1,4 +1,7 @@
-use std::{collections::VecDeque, sync::Mutex};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Mutex,
+};
 
 use eframe::{
     egui::{self, Frame, Key},
@@ -21,6 +24,22 @@ pub struct AppState {
     pub input_y: [f32; 2],
     pub pressed_key: Option<char>,
     pub queued_alarms: VecDeque<DialAlarm>,
+    pub last_keys: HashMap<Key, bool>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self {
+            dials: Vec::new(),
+            ball: Ball::new(),
+            input_axes: Vec2::ZERO,
+            input_x: [0.0, 0.0],
+            input_y: [0.0, 0.0],
+            pressed_key: None,
+            queued_alarms: VecDeque::new(),
+            last_keys: HashMap::new(),
+        }
+    }
 }
 
 pub struct DialsApp {
@@ -139,17 +158,31 @@ impl eframe::App for DialsApp {
                 modifiers: _,
             } = event
             {
+                let last_pressed = {
+                    let mut state = self.state_mutex.lock().unwrap();
+
+                    *state.last_keys.entry(key).or_insert(false)
+                };
                 let value = if pressed { 1.0 } else { 0.0 };
+                // true if the this key changed from last time
+                // (was just pressed or released since the last frame)
+                let key_changed = pressed != last_pressed;
 
                 match key {
                     Key::ArrowUp => input_y[0] = value,
                     Key::ArrowDown => input_y[1] = value,
                     Key::ArrowRight => input_x[0] = value,
                     Key::ArrowLeft => input_x[1] = value,
+                    Key::Backspace => {
+                        if key_changed && pressed {
+                            let state = self.state_mutex.lock().unwrap();
+                            state.dials[0].cheese_play();
+                        }
+                    }
                     k => {
                         use egui::Key::*;
 
-                        if !pressed {
+                        if key_changed && pressed {
                             pressed_key = key_to_char!(
                                 k, Num1, '1', Num2, '2', Num3, '3', Num4, '4', Num5, '5', Num6,
                                 '6', Num7, '7', Num8, '8', Num9, '9', A, 'A', B, 'B', C, 'C', D,
@@ -159,6 +192,10 @@ impl eframe::App for DialsApp {
                             );
                         }
                     }
+                }
+                {
+                    let mut state = self.state_mutex.lock().unwrap();
+                    state.last_keys.insert(key, pressed);
                 }
             }
         }

@@ -1,11 +1,9 @@
 use anyhow::Result;
 use audio::AudioManager;
-use ball::Ball;
 use dial::{Dial, DialRange};
-use eframe::emath::Vec2;
 use lazy_static::lazy_static;
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
@@ -27,15 +25,7 @@ pub mod config;
 pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
 
 lazy_static! {
-    static ref STATE: Mutex<AppState> = Mutex::new(AppState {
-        dials: Vec::new(),
-        ball: Ball::new(),
-        input_axes: Vec2::ZERO,
-        input_x: [0.0, 0.0],
-        input_y: [0.0, 0.0],
-        pressed_key: None,
-        queued_alarms: VecDeque::new()
-    });
+    static ref STATE: Mutex<AppState> = Mutex::new(AppState::new());
 }
 
 pub fn run() -> Result<()> {

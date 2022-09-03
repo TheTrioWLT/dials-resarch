@@ -37,9 +37,11 @@ impl AudioManager {
             match rx.recv() {
                 Err(_) => break,
                 Ok(sample) => {
+                    log::info!("got sample");
                     if let Err(e) = stream_handle.play_raw(sample) {
                         error!("failed to play audio file {}", e);
                     }
+                    log::info!("returned from play_raw");
                 }
             }
         }
@@ -67,8 +69,11 @@ impl AudioManager {
 
     /// Does its best to play the given alarm sound
     pub fn play(&self, path: &str) -> Result<()> {
+        log::info!("about to preload file");
         let sample = self.preload_file(path)?;
+        log::info!("got sample");
         let guard = self.tx.lock().unwrap();
+        log::info!("sending sample to other thread");
         let _ = guard.send(sample);
         Ok(())
     }
