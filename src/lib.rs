@@ -9,8 +9,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use gilrs::{Gilrs, Button, Event};
 use app::{AppState, DialsApp};
-
 use crate::{ball::Ball, dial::DialReaction};
 
 mod app;
@@ -110,7 +110,16 @@ pub fn run() -> Result<()> {
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
 fn model(state: &Mutex<AppState>) {
+    let mut gilrs = Gilrs::new().unwrap();
+
     let mut last_update = Instant::now();
+
+
+    for (_id, gamepad) in gilrs.gamepads(){
+        println!("{} is {:?} ", gamepad.name(), gamepad.power_info());
+    }
+
+    let mut active_gamepad = None;
 
     loop {
         thread::sleep(Duration::from_millis(2));
@@ -126,9 +135,23 @@ fn model(state: &Mutex<AppState>) {
                 }
             }
 
+            while let Some(Event { id, event, time }) = gilrs.next_event(){
+                println!("{:?} New event from {}: {:?}", time, id, event);
+                active_gamepad = Some(id);
+
+            }
+
+            if let Some(gamepad) = active_gamepad.map(|id| gilrs.gamepad(id)) {
+                if gamepad.is_pressed(Button::South){
+                    println!("Button South is pressed");
+
+                }
+            }
+
             state.queued_alarms.extend(alarms);
 
             let input_axes = state.input_axes;
+
 
             state.ball.update(input_axes, delta_time);
 

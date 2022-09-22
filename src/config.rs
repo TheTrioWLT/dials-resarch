@@ -8,7 +8,11 @@ pub struct Config {
 
     pub ball: Ball,
     pub dials: Vec<Dial>,
-    pub alarms: Vec<Alarm>,
+    pub alarms: Vec<Alarm>,//      if ((head.info == val) && (tail.info == val)){
+  //          head = tail = null;
+
+  //      }
+   
 }
 
 #[derive(Serialize, Deserialize, Debug)]
