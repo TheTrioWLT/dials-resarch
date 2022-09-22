@@ -1,4 +1,5 @@
 use anyhow::Result;
+
 use audio::AudioManager;
 use dial::{Dial, DialRange};
 use lazy_static::lazy_static;
@@ -143,7 +144,7 @@ fn model(state: &Mutex<AppState>) {
 
             if let Some(gamepad) = active_gamepad.map(|id| gilrs.gamepad(id)) {
                 if gamepad.is_pressed(Button::South){
-                    println!("Button South is pressed");
+                    println!("Button South is pressed. ");
 
                 }
             }
