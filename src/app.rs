@@ -13,6 +13,7 @@ use crate::{
     ball::Ball,
     dial::{Dial, DialAlarm},
     dial_widget::{DialWidget, DIALS_HEIGHT_PERCENT, DIALS_MAX_WIDTH_PERCENT},
+    output::SessionOutput,
     tracking_widget::TrackingWidget,
 };
 
@@ -25,6 +26,8 @@ pub struct AppState {
     pub pressed_key: Option<char>,
     pub queued_alarms: VecDeque<DialAlarm>,
     pub last_keys: HashMap<Key, bool>,
+    pub session_output: SessionOutput,
+    pub num_alarms_done: usize,
 }
 
 impl AppState {
@@ -38,6 +41,8 @@ impl AppState {
             pressed_key: None,
             queued_alarms: VecDeque::new(),
             last_keys: HashMap::new(),
+            session_output: SessionOutput::new(String::new()),
+            num_alarms_done: 0,
         }
     }
 }
@@ -173,12 +178,6 @@ impl eframe::App for DialsApp {
                     Key::ArrowDown => input_y[1] = value,
                     Key::ArrowRight => input_x[0] = value,
                     Key::ArrowLeft => input_x[1] = value,
-                    Key::Backspace => {
-                        if key_changed && pressed {
-                            let state = self.state_mutex.lock().unwrap();
-                            state.dials[0].cheese_play();
-                        }
-                    }
                     k => {
                         use egui::Key::*;
 

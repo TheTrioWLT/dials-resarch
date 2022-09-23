@@ -2,6 +2,7 @@ use anyhow::Result;
 use audio::AudioManager;
 use dial::{Dial, DialRange};
 use lazy_static::lazy_static;
+use output::SessionOutput;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -17,12 +18,14 @@ mod app;
 mod ball;
 mod dial;
 mod dial_widget;
+mod output;
 mod tracking_widget;
 
 pub mod audio;
 pub mod config;
 
 pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
+pub const DEFAULT_OUTPUT_PATH: &str = "./trial.csv";
 
 lazy_static! {
     static ref STATE: Mutex<AppState> = Mutex::new(AppState::new());
@@ -95,6 +98,12 @@ pub fn run() -> Result<()> {
             config.ball.random_direction_change_time_max,
             config.ball.velocity_meter,
         );
+        state.session_output = SessionOutput::new(
+            config
+                .output_data_path
+                .clone()
+                .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
+        );
     }
 
     validate_config(&mut config);
@@ -141,8 +150,20 @@ fn model(state: &Mutex<AppState>) {
 
                     state.dials[alarm.dial_id].reset();
 
-                    println!("{reaction:?}");
+                    state.session_output.add_reaction(reaction);
+
+                    state.num_alarms_done += 1;
+
+                    if state.num_alarms_done == state.dials.len() {
+                        state.session_output.write_to_file();
+                        log::info!(
+                            "wrote session output to file: {}",
+                            state.session_output.output_path
+                        );
+                    }
                 }
+
+                state.pressed_key = None;
             }
         }
 
