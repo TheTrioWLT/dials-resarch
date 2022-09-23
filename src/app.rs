@@ -28,6 +28,8 @@ pub struct AppState {
     pub last_keys: HashMap<Key, bool>,
     pub session_output: SessionOutput,
     pub num_alarms_done: usize,
+    pub rms_sum: f32,
+    pub rms_num_datapoints: usize
 }
 
 impl AppState {
@@ -43,6 +45,8 @@ impl AppState {
             last_keys: HashMap::new(),
             session_output: SessionOutput::new(String::new()),
             num_alarms_done: 0,
+            rms_sum: 0.0,
+            rms_num_datapoints: 0
         }
     }
 }

@@ -112,6 +112,10 @@ impl Ball {
         self.time_running += delta_time;
     }
 
+    pub fn current_rms_error(&self) -> f32 {
+        self.pos.x.powf(2.0) + self.pos.y.powf(2.0) // Distance from the center squared
+    }
+
     pub fn pos(&self) -> Pos2 {
         self.pos
     }

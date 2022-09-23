@@ -69,6 +69,7 @@ pub struct DialReaction {
     pub millis: u32,
     pub correct_key: bool,
     pub key: char,
+    pub rms_error: f32
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -89,12 +90,13 @@ impl DialAlarm {
 }
 
 impl DialReaction {
-    pub fn new(dial_id: usize, millis: u32, correct_key: bool, key: char) -> Self {
+    pub fn new(dial_id: usize, millis: u32, correct_key: bool, key: char, rms_error: f32) -> Self {
         Self {
             dial_id,
             millis,
             correct_key,
             key,
+            rms_error
         }
     }
 }
