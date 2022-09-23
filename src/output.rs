@@ -34,12 +34,20 @@ impl SessionOutput {
             writeln!(
                 file,
                 "{}, {}, {}, {}, {}",
-                reaction.dial_id, reaction.rms_error, reaction.millis, reaction.correct_key, reaction.key
+                reaction.dial_id,
+                reaction.rms_error,
+                reaction.millis,
+                reaction.correct_key,
+                reaction.key
             )
             .unwrap();
             println!(
                 "{}, {}, {}, {}, {}",
-                reaction.dial_id, reaction.rms_error, reaction.millis, reaction.correct_key, reaction.key
+                reaction.dial_id,
+                reaction.rms_error,
+                reaction.millis,
+                reaction.correct_key,
+                reaction.key
             );
         }
     }

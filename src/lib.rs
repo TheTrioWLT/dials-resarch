@@ -148,8 +148,13 @@ fn model(state: &Mutex<AppState>) {
                 if let Some(alarm) = state.queued_alarms.pop_front() {
                     let millis = alarm.time.elapsed().as_millis() as u32;
 
-                    let reaction =
-                        DialReaction::new(alarm.dial_id, millis, alarm.correct_key == key, key, state.rms_sum / state.rms_num_datapoints as f32);
+                    let reaction = DialReaction::new(
+                        alarm.dial_id,
+                        millis,
+                        alarm.correct_key == key,
+                        key,
+                        state.rms_sum / state.rms_num_datapoints as f32,
+                    );
 
                     state.rms_num_datapoints = 0;
                     state.rms_sum = 0.0;

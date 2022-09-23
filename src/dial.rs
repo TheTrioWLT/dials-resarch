@@ -69,7 +69,7 @@ pub struct DialReaction {
     pub millis: u32,
     pub correct_key: bool,
     pub key: char,
-    pub rms_error: f32
+    pub rms_error: f32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -96,7 +96,7 @@ impl DialReaction {
             millis,
             correct_key,
             key,
-            rms_error
+            rms_error,
         }
     }
 }
