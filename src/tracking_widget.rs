@@ -7,8 +7,8 @@ use eframe::{
 const FRAME_BORDER_WIDTH: f32 = 1.0;
 const FRAME_BORDER_COLOR: Color32 = Color32::WHITE;
 
-const FRAME_MAX_HEIGHT_PERCENT: f32 = 0.8;
-const FRAME_MAX_WIDTH_PERCENT: f32 = 0.3;
+const FRAME_MAX_HEIGHT_PERCENT: f32 = 1.0;
+const FRAME_MAX_WIDTH_PERCENT: f32 = 0.7;
 
 // This is a percentage of the *frame size*, not window size
 const CROSSHAIR_SIZE_PERCENT: f32 = 0.125;
@@ -32,7 +32,9 @@ impl TrackingWidget {
         let height_size = FRAME_MAX_HEIGHT_PERCENT * ui.available_height();
         let width_size = FRAME_MAX_WIDTH_PERCENT * ui.available_width();
 
-        let desired_size = Vec2::splat(height_size.max(width_size));
+        let min_both = height_size.min(width_size);
+
+        let desired_size = Vec2::splat(min_both);
         let (rect, mut response) =
             ui.allocate_exact_size(desired_size, egui::Sense::focusable_noninteractive());
 

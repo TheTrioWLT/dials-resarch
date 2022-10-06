@@ -12,12 +12,15 @@ use eframe::{
 use crate::{
     ball::Ball,
     dial::{Dial, DialAlarm},
-    dial_widget::{DialWidget, DIALS_HEIGHT_PERCENT, DIALS_MAX_WIDTH_PERCENT},
+    dial_widget::{
+        DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
+    },
+    output::SessionOutput,
     tracking_widget::TrackingWidget,
 };
 
 pub struct AppState {
-    pub dials: Vec<Dial>,
+    pub dial_rows: Vec<Vec<Dial>>,
     pub ball: Ball,
     pub input_axes: Vec2,
     pub input_x: [f32; 2],
@@ -25,12 +28,16 @@ pub struct AppState {
     pub pressed_key: Option<char>,
     pub queued_alarms: VecDeque<DialAlarm>,
     pub last_keys: HashMap<Key, bool>,
+    pub session_output: SessionOutput,
+    pub num_alarms_done: usize,
+    pub rms_sum: f32,
+    pub rms_num_datapoints: usize,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self {
-            dials: Vec::new(),
+            dial_rows: Vec::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
             input_axes: Vec2::ZERO,
             input_x: [0.0, 0.0],
@@ -38,6 +45,10 @@ impl AppState {
             pressed_key: None,
             queued_alarms: VecDeque::new(),
             last_keys: HashMap::new(),
+            session_output: SessionOutput::new(String::new()),
+            num_alarms_done: 0,
+            rms_sum: 0.0,
+            rms_num_datapoints: 0,
         }
     }
 }
@@ -74,7 +85,7 @@ impl DialsApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered(|ui| {
-                ui.add_space(window_height * 0.1);
+                ui.add_space(window_height * 0.025);
                 TrackingWidget::new(state.ball.pos()).show(ui);
             });
         });
@@ -89,37 +100,64 @@ impl DialsApp {
 
         let state = self.state_mutex.lock().unwrap();
 
+        let num_rows_f = state.dial_rows.len() as f32;
+
+        let x_spacing = window_width * 0.05;
+
         egui::TopBottomPanel::bottom("bottom_panel")
-            .min_height(bottom_panel_height)
+            .max_height(bottom_panel_height)
             .frame(Frame::none().fill(Color32::from_rgb(27, 27, 27)))
             .show(ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    let num_dials = state.dials.len();
-                    let spacing = window_width * 0.05;
-                    ui.spacing_mut().item_spacing.x = spacing;
+                let max_num_dials = state.dial_rows.iter().map(|r| r.len()).max().unwrap() as f32;
 
-                    let dial_max_radius =
-                        (window_width * DIALS_MAX_WIDTH_PERCENT) / (num_dials as f32 * 2.0);
+                // We want there to be at least a little space in between dial rows
+                let min_y_spacing = bottom_panel_height * 0.1;
 
-                    let mut dial_radius = DIALS_HEIGHT_PERCENT * window_height;
+                // These are all of our nice constraints for how large dials can be:
+                // Based on the width of the window
+                // Based on the height of the window
+                // Based on the max that still allows for the minimum spacing
+                let width_dial_max_radius =
+                    (window_width * MAX_DIALS_WIDTH_PERCENT) / (max_num_dials * 2.0);
+                let height_dial_max_radius = bottom_panel_height * MAX_DIAL_HEIGHT_PERCENT;
+                let spacing_dial_max_radius =
+                    (bottom_panel_height - ((num_rows_f + 1.0) * min_y_spacing)) / num_rows_f;
 
-                    if dial_radius > dial_max_radius {
-                        dial_radius = dial_max_radius;
+                // The dial radius is the minimum of each maximum
+                let dial_radius = height_dial_max_radius
+                    .min(width_dial_max_radius)
+                    .min(spacing_dial_max_radius);
+
+                // Calculate our spacing values
+                let dials_total_height = dial_radius * num_rows_f;
+                let total_y_spacing = bottom_panel_height - dials_total_height;
+                let y_spacing = total_y_spacing / (num_rows_f + 1.0);
+
+                ui.add_space(y_spacing);
+
+                ui.vertical_centered_justified(|ui| {
+                    for row in &state.dial_rows {
+                        let num_dials = row.len();
+
+                        let items_width =
+                            num_dials as f32 * dial_radius + ((num_dials - 1) as f32 * x_spacing);
+
+                        // Required to make these widgets centered
+                        ui.set_max_width(items_width);
+
+                        ui.horizontal(|ui| {
+                            ui.set_height(dial_radius);
+
+                            ui.spacing_mut().item_spacing.x = x_spacing;
+
+                            for dial in row.iter() {
+                                DialWidget::new(dial.value(), dial_radius, dial.in_range())
+                                    .show(ui);
+                            }
+                        });
+
+                        ui.add_space(y_spacing);
                     }
-
-                    let items_width =
-                        num_dials as f32 * dial_radius + (num_dials - 1) as f32 * spacing;
-
-                    // Required to make these widgets centered
-                    ui.set_max_width(items_width);
-
-                    ui.add_space(ui.available_height() - dial_radius - spacing);
-
-                    ui.horizontal_centered(|ui| {
-                        for dial in state.dials.iter() {
-                            DialWidget::new(dial.value(), dial_radius, dial.in_range()).show(ui);
-                        }
-                    });
                 });
             });
     }
@@ -173,12 +211,6 @@ impl eframe::App for DialsApp {
                     Key::ArrowDown => input_y[1] = value,
                     Key::ArrowRight => input_x[0] = value,
                     Key::ArrowLeft => input_x[1] = value,
-                    Key::Backspace => {
-                        if key_changed && pressed {
-                            let state = self.state_mutex.lock().unwrap();
-                            state.dials[0].cheese_play();
-                        }
-                    }
                     k => {
                         use egui::Key::*;
 
