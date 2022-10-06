@@ -7,7 +7,9 @@ pub struct Config {
     pub output_data_path: Option<String>,
 
     pub ball: Ball,
-    pub dials: Vec<Dial>,
+
+    #[serde(rename = "row")]
+    pub dial_rows: Vec<DialRow>,
     pub alarms: Vec<Alarm>,
 }
 
@@ -34,6 +36,13 @@ pub struct Dial {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DialRow {
+    /// A row of dials on the GUI
+    #[serde(rename = "dial")]
+    pub dials: Vec<Dial>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Alarm {
     /// The user defined name of this alarm. Used to match up which alarm is being used in
     /// [`Dial::alarm`]
@@ -56,16 +65,29 @@ impl Default for Config {
                 random_direction_change_time_max: 8.0,
                 velocity_meter: BallVelocity::Slow,
             },
-            dials: (1u32..=5)
-                .map(|i| Dial {
-                    alarm: i.to_string(),
-                    start: i as f32 * 200.0,
-                    end: i as f32 * 200.0 + range_size,
-                    alarm_time: 8.0 + (i as f32) * 6.0,
-                })
-                .collect(),
-
-            alarms: (1u32..=5)
+            dial_rows: vec![DialRow {
+                dials: (1u32..=3)
+                    .map(|i| Dial {
+                        alarm: i.to_string(),
+                        start: i as f32 * 200.0,
+                        end: i as f32 * 200.0 + range_size,
+                        alarm_time: 8.0 + (i as f32) * 6.0,
+                    })
+                    .collect(),
+            },
+            DialRow {
+                dials: 
+                (4u32..=6)
+                    .map(|i| Dial {
+                        alarm: i.to_string(),
+                        start: i as f32 * 200.0,
+                        end: i as f32 * 200.0 + range_size,
+                        alarm_time: 8.0 + (i as f32) * 6.0,
+                    })
+                    .collect(),
+            }
+            ],
+            alarms: (1u32..=6)
                 .map(|i| Alarm {
                     name: i.to_string(),
                     audio_path: "alarm.wav".to_owned(),

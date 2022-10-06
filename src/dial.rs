@@ -74,14 +74,16 @@ pub struct DialReaction {
 
 #[derive(Debug, Copy, Clone)]
 pub struct DialAlarm {
+    pub row_id: usize,
     pub dial_id: usize,
     pub time: Instant,
     pub correct_key: char,
 }
 
 impl DialAlarm {
-    pub fn new(dial_id: usize, time: Instant, correct_key: char) -> Self {
+    pub fn new(row_id: usize, dial_id: usize, time: Instant, correct_key: char) -> Self {
         Self {
+            row_id,
             dial_id,
             time,
             correct_key,
@@ -104,6 +106,7 @@ impl DialReaction {
 #[derive(Debug, Clone)]
 pub struct Dial {
     value: f32,
+    row_id: usize,
     dial_id: usize,
     in_range: DialRange,
     key: char,
@@ -117,6 +120,7 @@ pub struct Dial {
 
 impl Dial {
     pub fn new(
+        row_id: usize,
         dial_id: usize,
         in_range: DialRange,
         alarm: &Alarm,
@@ -133,6 +137,7 @@ impl Dial {
 
         Self {
             value: in_range.random_in(),
+            row_id,
             dial_id,
             in_range,
             key: alarm.clear_key,
@@ -184,7 +189,7 @@ impl Dial {
         if !self.alarm_fired && !self.in_range.contains(self.value) {
             self.on_out_of_range();
 
-            let dial_alarm = DialAlarm::new(self.dial_id, Instant::now(), self.key);
+            let dial_alarm = DialAlarm::new(self.row_id, self.dial_id, Instant::now(), self.key);
 
             Some(dial_alarm)
         } else {
