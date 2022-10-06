@@ -14,7 +14,8 @@ const BALL_SLOW_VELOCITY: f32 = 0.75;
 const BALL_MEDIUM_VELOCITY: f32 = 1.0;
 const BALL_FAST_VELOCITY: f32 = 1.25;
 
-const BALL_NUDGE_RATE: f32 = 0.003;
+const BALL_NUDGE_RATE: f32 = 1.7;
+
 
 #[derive(Debug, Clone, Copy)]
 pub enum BallVelocity {
@@ -81,11 +82,11 @@ impl Ball {
         self.pos.x += self.velocity.x * delta_time;
         self.pos.y += self.velocity.y * delta_time;
 
-        let hyp = f32::sqrt(self.velocity.x.powi(2) + self.velocity.y.powi(2));
+        let hyp = f32::sqrt(self.velocity.x.powi(2) + self.velocity.y.powi(2)) ;
 
-        self.pos.x += input_axes.x * BALL_NUDGE_RATE * hyp;
+        self.pos.x += input_axes.x * BALL_NUDGE_RATE * hyp * delta_time;
         // Corrects for the fact that positive y here is down
-        self.pos.y -= input_axes.y * BALL_NUDGE_RATE * hyp;
+        self.pos.y -= input_axes.y * BALL_NUDGE_RATE * hyp * delta_time;
 
         // This is for bounds checking on the ball
         // The addition or substraction inside the logic is so the circle does not use the center as
