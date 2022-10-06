@@ -156,9 +156,6 @@ fn model(state: &Mutex<AppState>) {
 
             state.ball.update(input_axes, delta_time);
 
-            state.rms_num_datapoints += 1;
-            state.rms_sum += state.ball.current_rms_error();
-
             if let Some(key) = state.pressed_key {
                 if let Some(alarm) = state.queued_alarms.pop_front() {
                     let millis = alarm.time.elapsed().as_millis() as u32;
@@ -168,11 +165,8 @@ fn model(state: &Mutex<AppState>) {
                         millis,
                         alarm.correct_key == key,
                         key,
-                        state.rms_sum / state.rms_num_datapoints as f32,
+                        state.ball.current_rms_error()
                     );
-
-                    state.rms_num_datapoints = 0;
-                    state.rms_sum = 0.0;
 
                     state.dial_rows[alarm.row_id][alarm.dial_id].reset();
 
