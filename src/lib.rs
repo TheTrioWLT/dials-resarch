@@ -165,7 +165,7 @@ fn model(state: &Mutex<AppState>) {
                         millis,
                         alarm.correct_key == key,
                         key,
-                        state.ball.current_rms_error()
+                        state.ball.current_rms_error(),
                     );
 
                     state.dial_rows[alarm.row_id][alarm.dial_id].reset();
