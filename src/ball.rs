@@ -14,6 +14,7 @@ const BALL_SLOW_VELOCITY: f32 = 0.75;
 const BALL_MEDIUM_VELOCITY: f32 = 1.0;
 const BALL_FAST_VELOCITY: f32 = 1.25;
 
+
 const BALL_NUDGE_RATE: f32 = 1.2;
 
 #[derive(Debug, Clone, Copy)]
