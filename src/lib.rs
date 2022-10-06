@@ -77,21 +77,24 @@ pub fn run() -> Result<()> {
         .dial_rows
         .iter()
         .enumerate()
-        .map(|(row_id, row)| row.dials
-        .iter()
-        .enumerate()
-        .map(|(id, dial)| {
-            let alarm = alarms[dial.alarm.as_str()];
-            Dial::new(
-                row_id,
-                id,
-                DialRange::new(dial.start, dial.end),
-                alarm,
-                Arc::clone(&audio),
-                dial.alarm_time,
-            )
+        .map(|(row_id, row)| {
+            row.dials
+                .iter()
+                .enumerate()
+                .map(|(id, dial)| {
+                    let alarm = alarms[dial.alarm.as_str()];
+                    Dial::new(
+                        row_id,
+                        id,
+                        DialRange::new(dial.start, dial.end),
+                        alarm,
+                        Arc::clone(&audio),
+                        dial.alarm_time,
+                    )
+                })
+                .collect()
         })
-        .collect()).collect();
+        .collect();
 
     {
         let mut state = STATE.lock().unwrap();
@@ -127,7 +130,7 @@ fn model(state: &Mutex<AppState>) {
 
     let total_num_alarms = {
         let state = state.lock().expect("This shouldn't fail silently");
-        
+
         state.dial_rows.iter().map(|r| r.len()).sum()
     };
 

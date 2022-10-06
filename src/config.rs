@@ -65,27 +65,27 @@ impl Default for Config {
                 random_direction_change_time_max: 8.0,
                 velocity_meter: BallVelocity::Slow,
             },
-            dial_rows: vec![DialRow {
-                dials: (1u32..=3)
-                    .map(|i| Dial {
-                        alarm: i.to_string(),
-                        start: i as f32 * 200.0,
-                        end: i as f32 * 200.0 + range_size,
-                        alarm_time: 8.0 + (i as f32) * 6.0,
-                    })
-                    .collect(),
-            },
-            DialRow {
-                dials: 
-                (4u32..=6)
-                    .map(|i| Dial {
-                        alarm: i.to_string(),
-                        start: i as f32 * 200.0,
-                        end: i as f32 * 200.0 + range_size,
-                        alarm_time: 8.0 + (i as f32) * 6.0,
-                    })
-                    .collect(),
-            }
+            dial_rows: vec![
+                DialRow {
+                    dials: (1u32..=3)
+                        .map(|i| Dial {
+                            alarm: i.to_string(),
+                            start: i as f32 * 200.0,
+                            end: i as f32 * 200.0 + range_size,
+                            alarm_time: 8.0 + (i as f32) * 6.0,
+                        })
+                        .collect(),
+                },
+                DialRow {
+                    dials: (4u32..=6)
+                        .map(|i| Dial {
+                            alarm: i.to_string(),
+                            start: i as f32 * 200.0,
+                            end: i as f32 * 200.0 + range_size,
+                            alarm_time: 8.0 + (i as f32) * 6.0,
+                        })
+                        .collect(),
+                },
             ],
             alarms: (1u32..=6)
                 .map(|i| Alarm {

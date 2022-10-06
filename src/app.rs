@@ -12,7 +12,9 @@ use eframe::{
 use crate::{
     ball::Ball,
     dial::{Dial, DialAlarm},
-    dial_widget::{DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT},
+    dial_widget::{
+        DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
+    },
     output::SessionOutput,
     tracking_widget::TrackingWidget,
 };
@@ -118,10 +120,13 @@ impl DialsApp {
                 let width_dial_max_radius =
                     (window_width * MAX_DIALS_WIDTH_PERCENT) / (max_num_dials * 2.0);
                 let height_dial_max_radius = bottom_panel_height * MAX_DIAL_HEIGHT_PERCENT;
-                let spacing_dial_max_radius = (bottom_panel_height - ((num_rows_f + 1.0) * min_y_spacing)) / num_rows_f;
+                let spacing_dial_max_radius =
+                    (bottom_panel_height - ((num_rows_f + 1.0) * min_y_spacing)) / num_rows_f;
 
                 // The dial radius is the minimum of each maximum
-                let dial_radius = height_dial_max_radius.min(width_dial_max_radius).min(spacing_dial_max_radius);
+                let dial_radius = height_dial_max_radius
+                    .min(width_dial_max_radius)
+                    .min(spacing_dial_max_radius);
 
                 // Calculate our spacing values
                 let dials_total_height = dial_radius * num_rows_f;
@@ -132,26 +137,26 @@ impl DialsApp {
 
                 ui.vertical_centered_justified(|ui| {
                     for row in &state.dial_rows {
-                            let num_dials = row.len();
+                        let num_dials = row.len();
 
-                            let items_width = num_dials as f32 * dial_radius
-                                + ((num_dials - 1) as f32 * x_spacing);
+                        let items_width =
+                            num_dials as f32 * dial_radius + ((num_dials - 1) as f32 * x_spacing);
 
-                            // Required to make these widgets centered
-                            ui.set_max_width(items_width);
+                        // Required to make these widgets centered
+                        ui.set_max_width(items_width);
 
-                            ui.horizontal(|ui| {
-                                ui.set_height(dial_radius);
+                        ui.horizontal(|ui| {
+                            ui.set_height(dial_radius);
 
-                                ui.spacing_mut().item_spacing.x = x_spacing;
+                            ui.spacing_mut().item_spacing.x = x_spacing;
 
-                                for dial in row.iter() {
-                                    DialWidget::new(dial.value(), dial_radius, dial.in_range())
-                                        .show(ui);
-                                }
-                            });
+                            for dial in row.iter() {
+                                DialWidget::new(dial.value(), dial_radius, dial.in_range())
+                                    .show(ui);
+                            }
+                        });
 
-                            ui.add_space(y_spacing);
+                        ui.add_space(y_spacing);
                     }
                 });
             });
