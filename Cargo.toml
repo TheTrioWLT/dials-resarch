@@ -3,6 +3,14 @@ name = "dials-research"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+strip = true
+
+[profile.dist]
+inherits = "release"
+lto = true
+codegen-units = 1
+
 [dependencies]
 eframe = "0.18.0"
 lazy_static = "1.4.0"
