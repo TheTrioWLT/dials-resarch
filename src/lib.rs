@@ -2,6 +2,7 @@ use anyhow::Result;
 
 use audio::AudioManager;
 use dial::{Dial, DialRange};
+use eframe::epaint::Vec2;
 use lazy_static::lazy_static;
 use std::{
     collections::HashMap,
@@ -10,9 +11,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use gilrs::{Gilrs, Button, Event};
-use app::{AppState, DialsApp};
 use crate::{ball::Ball, dial::DialReaction};
+use app::{AppState, DialsApp};
+use gilrs::{Event, Gilrs};
 
 mod app;
 mod ball;
@@ -90,6 +91,7 @@ pub fn run() -> Result<()> {
     {
         let mut state = STATE.lock().unwrap();
 
+        state.input_mode = config.input_mode;
         state.dials = dials;
         state.ball = Ball::new(
             config.ball.random_direction_change_time_min,
@@ -115,12 +117,11 @@ fn model(state: &Mutex<AppState>) {
 
     let mut last_update = Instant::now();
 
-
-    for (_id, gamepad) in gilrs.gamepads(){
+    for (_id, gamepad) in gilrs.gamepads() {
         println!("{} is {:?} ", gamepad.name(), gamepad.power_info());
     }
 
-    let mut active_gamepad = None;
+    let mut joystick_input_axes = Vec2::default();
 
     loop {
         thread::sleep(Duration::from_millis(2));
@@ -136,23 +137,26 @@ fn model(state: &Mutex<AppState>) {
                 }
             }
 
-            while let Some(Event { id, event, time }) = gilrs.next_event(){
-                println!("{:?} New event from {}: {:?}", time, id, event);
-                active_gamepad = Some(id);
-
-            }
-
-            if let Some(gamepad) = active_gamepad.map(|id| gilrs.gamepad(id)) {
-                if gamepad.is_pressed(Button::South){
-                    println!("Button South is pressed. ");
-
+            while let Some(Event { event, .. }) = gilrs.next_event() {
+                if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
+                    match axis {
+                        gilrs::ev::Axis::LeftStickX => {
+                            joystick_input_axes[0] = amount;
+                        }
+                        gilrs::ev::Axis::LeftStickY => {
+                            joystick_input_axes[1] = amount;
+                        }
+                        _ => {}
+                    }
                 }
             }
 
             state.queued_alarms.extend(alarms);
 
-            let input_axes = state.input_axes;
-
+            let input_axes = match state.input_mode {
+                config::InputMode::Joystick => joystick_input_axes,
+                config::InputMode::Keyboard => state.input_axes,
+            };
 
             state.ball.update(input_axes, delta_time);
 

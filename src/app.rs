@@ -11,11 +11,11 @@ use eframe::{
 
 use crate::{
     ball::Ball,
+    config::InputMode,
     dial::{Dial, DialAlarm},
     dial_widget::{DialWidget, DIALS_HEIGHT_PERCENT, DIALS_MAX_WIDTH_PERCENT},
     tracking_widget::TrackingWidget,
 };
-
 
 pub struct AppState {
     pub dials: Vec<Dial>,
@@ -26,6 +26,7 @@ pub struct AppState {
     pub pressed_key: Option<char>,
     pub queued_alarms: VecDeque<DialAlarm>,
     pub last_keys: HashMap<Key, bool>,
+    pub input_mode: InputMode,
 }
 
 impl AppState {
@@ -39,6 +40,7 @@ impl AppState {
             pressed_key: None,
             queued_alarms: VecDeque::new(),
             last_keys: HashMap::new(),
+            input_mode: InputMode::default(),
         }
     }
 }

@@ -8,11 +8,8 @@ pub struct Config {
 
     pub ball: Ball,
     pub dials: Vec<Dial>,
-    pub alarms: Vec<Alarm>,//      if ((head.info == val) && (tail.info == val)){
-  //          head = tail = null;
-
-  //      }
-   
+    pub alarms: Vec<Alarm>,
+    pub input_mode: InputMode,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -76,8 +73,8 @@ impl Default for Config {
                     clear_key: char::from_digit(i, 10).unwrap(),
                 })
                 .collect(),
-
             output_data_path: None,
+            input_mode: InputMode::default(),
         }
     }
 }
@@ -111,4 +108,13 @@ impl<'de> Deserialize<'de> for BallVelocity {
             ))),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, Clone, Copy)]
+pub enum InputMode {
+    #[serde(rename = "joystick")]
+    Joystick,
+    #[default]
+    #[serde(rename = "keyboard")]
+    Keyboard,
 }
