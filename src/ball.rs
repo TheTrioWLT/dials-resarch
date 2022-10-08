@@ -14,7 +14,7 @@ const BALL_SLOW_VELOCITY: f32 = 0.30;
 const BALL_MEDIUM_VELOCITY: f32 = 0.60;
 const BALL_FAST_VELOCITY: f32 = 1.20;
 
-const BALL_NUDGE_RATE: f32 = 1.7;
+const BALL_NUDGE_RATE: f32 = 1.2;
 
 #[derive(Debug, Clone, Copy)]
 pub enum BallVelocity {
@@ -78,14 +78,14 @@ impl Ball {
                 self.random_direction_change_time_min..=self.random_direction_change_time_max,
             ) as f32;
         }
+
         self.pos.x += self.velocity.x * delta_time;
         self.pos.y += self.velocity.y * delta_time;
 
-        let hyp = f32::sqrt(self.velocity.x.powi(2) + self.velocity.y.powi(2));
-
-        self.pos.x += input_axes.x * BALL_NUDGE_RATE * hyp * delta_time;
+        // Based on input
+        self.pos.x += input_axes.x * BALL_NUDGE_RATE * delta_time;
         // Corrects for the fact that positive y here is down
-        self.pos.y -= input_axes.y * BALL_NUDGE_RATE * hyp * delta_time;
+        self.pos.y -= input_axes.y * BALL_NUDGE_RATE * delta_time;
 
         // This is for bounds checking on the ball
         // The addition or substraction inside the logic is so the circle does not use the center as
@@ -110,6 +110,10 @@ impl Ball {
         }
 
         self.time_running += delta_time;
+    }
+
+    pub fn current_rms_error(&self) -> f32 {
+        self.pos.x.powf(2.0) + self.pos.y.powf(2.0) // Distance from the center squared
     }
 
     pub fn pos(&self) -> Pos2 {

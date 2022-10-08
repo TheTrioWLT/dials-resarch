@@ -6,8 +6,10 @@ use eframe::{
 
 use crate::dial::{DialRange, DIAL_MAX_VALUE};
 
-pub const DIALS_MAX_WIDTH_PERCENT: f32 = 0.9;
-pub const DIALS_HEIGHT_PERCENT: f32 = 0.3;
+pub const DIALS_HEIGHT_PERCENT: f32 = 0.4;
+/// Percentage of the total allocated space for dials
+pub const MAX_DIAL_HEIGHT_PERCENT: f32 = 0.7;
+pub const MAX_DIALS_WIDTH_PERCENT: f32 = 0.9;
 const NUM_DIAL_TICKS: u32 = 10;
 const DIAL_TICK_RADIUS: f32 = 2.0;
 const DIAL_BAR_WIDTH: f32 = 4.0;
