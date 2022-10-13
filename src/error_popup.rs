@@ -1,4 +1,4 @@
-use eframe::egui;
+use eframe::{egui, NativeOptions};
 use eframe::egui::Vec2;
 
 pub struct ErrorPopup {
@@ -21,10 +21,12 @@ impl ErrorPopup {
     }
 
     pub fn show(self) {
-        let mut native_options = eframe::NativeOptions::default();
-        native_options.always_on_top = true;
-        native_options.initial_window_size = Some(Vec2::new(400.0, 160.0));
-        native_options.resizable = false;
+        let native_options = NativeOptions {
+            always_on_top: true,
+            resizable: false,
+            initial_window_size: Some(Vec2::new(400.0, 160.0)),
+            ..NativeOptions::default()
+        };
         let title = self.title.clone();
         eframe::run_native(
             &title,

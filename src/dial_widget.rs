@@ -89,7 +89,7 @@ impl DialWidget {
 
             // Draw the needle
             let needle_angle_radians =
-                (self.value / (DIAL_MAX_VALUE as f32) * std::f32::consts::TAU) + DIAL_ANGLE_OFFSET;
+                (self.value / DIAL_MAX_VALUE * std::f32::consts::TAU) + DIAL_ANGLE_OFFSET;
             let needle_inset_radius = radius - DIAL_NEEDLE_INSET;
             let end_position = Pos2::new(
                 center.x + needle_inset_radius * f32::cos(needle_angle_radians),
