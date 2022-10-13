@@ -3,6 +3,7 @@ use std::f32;
 use eframe::{egui, emath::Vec2};
 use egui::Pos2;
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
@@ -16,10 +17,13 @@ const BALL_FAST_VELOCITY: f32 = 1.25;
 
 const BALL_NUDGE_RATE: f32 = 1.2;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum BallVelocity {
+    #[serde(rename = "slow")]
     Slow,
+    #[serde(rename = "medium")]
     Medium,
+    #[serde(rename = "fast")]
     Fast,
 }
 pub struct Ball {
