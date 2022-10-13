@@ -12,16 +12,16 @@ use std::{
 
 use app::{AppState, DialsApp};
 
-use crate::{ball::Ball, dial::DialReaction};
 use crate::error_popup::ErrorPopup;
+use crate::{ball::Ball, dial::DialReaction};
 
 mod app;
 mod ball;
 mod dial;
 mod dial_widget;
+mod error_popup;
 mod output;
 mod tracking_widget;
-mod error_popup;
 
 pub mod audio;
 pub mod config;
@@ -47,7 +47,11 @@ pub fn run() -> Result<()> {
             Err(e) => {
                 eprintln!("Failed to parse configuration file: {}", e);
 
-                let popup = ErrorPopup::new("Configuration Error", "Failed to parse configuration file", format!("{}", e));
+                let popup = ErrorPopup::new(
+                    "Configuration Error",
+                    "Failed to parse configuration file",
+                    format!("{}", e),
+                );
                 popup.show();
 
                 std::process::exit(1);
@@ -211,8 +215,11 @@ fn validate_config(config: &mut config::Config) {
                 eprintln!("Alarm `{alarm_name}` is missing!");
                 eprintln!("Available alarms are {alarm_names:?}");
 
-                let message = format!("Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}");
-                let popup = ErrorPopup::new("Configuration Error", "Invalid configuration", message);
+                let message = format!(
+                    "Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}"
+                );
+                let popup =
+                    ErrorPopup::new("Configuration Error", "Invalid configuration", message);
                 popup.show();
 
                 std::process::exit(1);

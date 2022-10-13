@@ -8,7 +8,11 @@ pub struct ErrorPopup {
 }
 
 impl ErrorPopup {
-    pub fn new(title: impl Into<String>, heading: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn new(
+        title: impl Into<String>,
+        heading: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             title: title.into(),
             heading: heading.into(),
@@ -22,7 +26,11 @@ impl ErrorPopup {
         native_options.initial_window_size = Some(Vec2::new(400.0, 160.0));
         native_options.resizable = false;
         let title = self.title.clone();
-        eframe::run_native(&title, native_options, Box::new(move |cc| Box::new(ErrorPopupWindow::new(self, cc))));
+        eframe::run_native(
+            &title,
+            native_options,
+            Box::new(move |cc| Box::new(ErrorPopupWindow::new(self, cc))),
+        );
     }
 }
 
