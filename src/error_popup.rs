@@ -1,5 +1,5 @@
-use eframe::{egui, NativeOptions};
 use eframe::egui::Vec2;
+use eframe::{egui, NativeOptions};
 
 pub struct ErrorPopup {
     title: String,
