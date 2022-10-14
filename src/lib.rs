@@ -5,16 +5,22 @@ use dial::{Dial, DialRange};
 use eframe::epaint::Vec2;
 use lazy_static::lazy_static;
 use output::SessionOutput;
+use pasts::Loop;
+use rodio::cpal::Data;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Arc, Mutex,
+    },
+    task::Poll::{self, Pending, Ready},
     thread,
     time::{Duration, Instant},
 };
 
 use crate::{ball::Ball, dial::DialReaction};
 use app::{AppState, DialsApp};
-use gilrs::{Event, Gilrs};
+use stick::{Controller, Event, Listener};
 
 mod app;
 mod ball;
@@ -28,6 +34,68 @@ pub mod config;
 
 pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
 pub const DEFAULT_OUTPUT_PATH: &str = "./trial.csv";
+
+//Following stick's hello world guide
+type Exit = usize;
+
+struct State {
+    listener: Listener,
+    controllers: Vec<Controller>,
+    input: Vec2,
+    sender: Sender<Vec2>,
+}
+
+impl State {
+    fn new(sender: Sender<Vec2>) -> Self {
+        Self {
+            listener: Listener::default(),
+            controllers: Vec::new(),
+            input: Vec2::ZERO,
+            sender,
+        }
+    }
+
+    fn connect(&mut self, controller: Controller) -> Poll<Exit> {
+        println!(
+            "Connected p{}, id: {:016X}, name: {}",
+            self.controllers.len() + 1,
+            controller.id(),
+            controller.name()
+        );
+        self.controllers.push(controller);
+        Pending
+    }
+
+    fn event(&mut self, id: usize, event: Event) -> Poll<Exit> {
+        let player = id + 1;
+        println!("p{}: {}", player, event);
+        match event {
+            Event::Disconnect => {
+                self.controllers.swap_remove(id);
+            }
+            Event::MenuR(true) => return Ready(player),
+            Event::JoyX(pressed) => {
+                self.input.x = pressed as f32;
+            }
+            Event::JoyY(pressed) => {
+                self.input.y = -pressed as f32;
+            }
+            _ => {}
+        }
+        self.sender.send(self.input).unwrap();
+
+        Pending
+    }
+}
+
+async fn event_loop<'a>(mut state: State) {
+    let player_id = Loop::new(&mut state)
+        .when(|s| &mut s.listener, State::connect)
+        .poll(|s| &mut s.controllers, State::event)
+        .await;
+
+    println!("p{} ended the session", player_id);
+}
 
 lazy_static! {
     static ref STATE: Mutex<AppState> = Mutex::new(AppState::new());
@@ -118,6 +186,20 @@ pub fn run() -> Result<()> {
 
     validate_config(&mut config);
 
+    let (sender, receiver) = channel();
+
+    thread::spawn(move || {
+        let state = State::new(sender);
+        pasts::block_on(event_loop(state));
+
+        println!("p{:?} ended the session", ":(");
+    });
+
+    {
+        let mut state = STATE.lock().unwrap();
+        state.reciever = Some(receiver);
+    }
+
     thread::spawn(move || model(&STATE));
 
     eframe::run_native(
@@ -129,21 +211,15 @@ pub fn run() -> Result<()> {
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
 fn model(state: &Mutex<AppState>) {
-    let mut gilrs = Gilrs::new().unwrap();
-
     let mut last_update = Instant::now();
-
-    for (_id, gamepad) in gilrs.gamepads() {
-        println!("{} is {:?} ", gamepad.name(), gamepad.power_info());
-    }
-
-    let mut joystick_input_axes = Vec2::default();
 
     let total_num_alarms = {
         let state = state.lock().unwrap();
 
         state.dial_rows.iter().map(|r| r.len()).sum()
     };
+
+    let mut joystick_input_axes = Vec2::ZERO;
 
     loop {
         thread::sleep(Duration::from_millis(2));
@@ -161,21 +237,11 @@ fn model(state: &Mutex<AppState>) {
                 }
             }
 
-            while let Some(Event { event, .. }) = gilrs.next_event() {
-                if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
-                    match axis {
-                        gilrs::ev::Axis::LeftStickX => {
-                            joystick_input_axes[0] = amount;
-                        }
-                        gilrs::ev::Axis::LeftStickY => {
-                            joystick_input_axes[1] = amount;
-                        }
-                        _ => {}
-                    }
-                }
-            }
-
             state.queued_alarms.extend(alarms);
+
+            if let Ok(data) = state.reciever.as_ref().unwrap().try_recv() {
+                joystick_input_axes = data;
+            }
 
             let input_axes = match state.input_mode {
                 config::InputMode::Joystick => joystick_input_axes,

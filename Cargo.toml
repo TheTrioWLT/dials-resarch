@@ -10,7 +10,8 @@ lazy_static = "1.4.0"
 hound = "3.4"
 rodio = "0.15.0"
 
-gilrs = "0.9.0"
+stick = "0.12.4"
+pasts = "0.8"
 
 rand = "0.8.5"
 serde = { version = "1.0", features = ["derive"] }

@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, VecDeque},
-    sync::Mutex,
+    sync::{mpsc::Receiver, Mutex},
 };
 
 use eframe::{
@@ -32,6 +32,7 @@ pub struct AppState {
     pub input_mode: InputMode,
     pub session_output: SessionOutput,
     pub num_alarms_done: usize,
+    pub reciever: Option<Receiver<Vec2>>,
 }
 
 impl AppState {
@@ -48,6 +49,7 @@ impl AppState {
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
             num_alarms_done: 0,
+            reciever: None,
         }
     }
 }
