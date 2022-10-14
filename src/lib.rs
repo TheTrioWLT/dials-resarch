@@ -12,12 +12,14 @@ use std::{
 
 use app::{AppState, DialsApp};
 
+use crate::error_popup::ErrorPopup;
 use crate::{ball::Ball, dial::DialReaction};
 
 mod app;
 mod ball;
 mod dial;
 mod dial_widget;
+mod error_popup;
 mod output;
 mod tracking_widget;
 
@@ -43,8 +45,15 @@ pub fn run() -> Result<()> {
         Ok(toml) => match toml::from_str(&toml) {
             Ok(t) => t,
             Err(e) => {
-                println!("failed to parse config file");
-                println!("{}", e);
+                eprintln!("Failed to parse configuration file: {}", e);
+
+                let popup = ErrorPopup::new(
+                    "Configuration Error",
+                    "Failed to parse configuration file",
+                    format!("{}", e),
+                );
+                popup.show();
+
                 std::process::exit(1);
             }
         },
@@ -58,6 +67,8 @@ pub fn run() -> Result<()> {
         }
     };
 
+    validate_config(&mut config);
+
     let audio = Arc::new(AudioManager::new()?);
 
     // Maps alarm names to alarm structs
@@ -66,9 +77,13 @@ pub fn run() -> Result<()> {
 
     for alarm in alarms.values() {
         if let Err(e) = audio.preload_file(&alarm.audio_path) {
-            println!("failed to load audio file `{}`:", &alarm.audio_path);
-            println!("{}", e);
-            println!("does the file exist?");
+            eprintln!("failed to load audio file `{}`: {}", &alarm.audio_path, e);
+            eprintln!("Does the file exist?");
+
+            let message = format!("Failed to load {}\n{}", &alarm.audio_path, e);
+            let popup = ErrorPopup::new("Audio Load Error", "Failed to load audio file", message);
+            popup.show();
+
             std::process::exit(1);
         }
     }
@@ -112,8 +127,6 @@ pub fn run() -> Result<()> {
                 .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
         );
     }
-
-    validate_config(&mut config);
 
     thread::spawn(move || model(&STATE));
 
@@ -199,17 +212,16 @@ fn validate_config(config: &mut config::Config) {
         for dial in &row.dials {
             let alarm_name = &dial.alarm;
             if !alarm_names.contains(&alarm_name) {
-                println!("alarm `{alarm_name}` is missing");
-                println!("available alarms are {alarm_names:?}");
-                std::process::exit(1);
-            }
-        }
-    }
-    for alarm in &mut config.alarms {
-        match alarm.clear_key.to_uppercase().to_string().chars().next() {
-            Some(key) => alarm.clear_key = key,
-            None => {
-                println!("alarm `{}` is missing a clear key", alarm.name);
+                eprintln!("Alarm `{alarm_name}` is missing!");
+                eprintln!("Available alarms are {alarm_names:?}");
+
+                let message = format!(
+                    "Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}"
+                );
+                let popup =
+                    ErrorPopup::new("Configuration Error", "Invalid configuration", message);
+                popup.show();
+
                 std::process::exit(1);
             }
         }

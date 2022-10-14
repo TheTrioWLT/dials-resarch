@@ -3,6 +3,7 @@ use std::f32;
 use eframe::{egui, emath::Vec2};
 use egui::Pos2;
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
@@ -16,10 +17,13 @@ const BALL_FAST_VELOCITY: f32 = 1.25;
 
 const BALL_NUDGE_RATE: f32 = 1.2;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum BallVelocity {
+    #[serde(rename = "slow")]
     Slow,
+    #[serde(rename = "medium")]
     Medium,
+    #[serde(rename = "fast")]
     Fast,
 }
 pub struct Ball {
@@ -76,7 +80,7 @@ impl Ball {
             self.time_running = 0.0;
             self.velocity_change_time_at = rng.gen_range(
                 self.random_direction_change_time_min..=self.random_direction_change_time_max,
-            ) as f32;
+            );
         }
 
         self.pos.x += self.velocity.x * delta_time;
@@ -88,7 +92,7 @@ impl Ball {
         self.pos.y -= input_axes.y * BALL_NUDGE_RATE * delta_time;
 
         // This is for bounds checking on the ball
-        // The addition or substraction inside the logic is so the circle does not use the center as
+        // The addition or subtraction inside the logic is so the circle does not use the center as
         // the x or y location. This way the circle would not go through some of the borders.
 
         if (self.pos.x + BALL_RADIUS) >= 1.0 {

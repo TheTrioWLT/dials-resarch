@@ -1,5 +1,5 @@
 use crate::ball::BallVelocity;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -96,37 +96,6 @@ impl Default for Config {
                 .collect(),
 
             output_data_path: None,
-        }
-    }
-}
-
-impl Serialize for BallVelocity {
-    fn serialize<S>(&self, se: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = match self {
-            BallVelocity::Slow => "slow",
-            BallVelocity::Medium => "medium",
-            BallVelocity::Fast => "fast",
-        };
-        s.serialize(se)
-    }
-}
-
-impl<'de> Deserialize<'de> for BallVelocity {
-    fn deserialize<D>(de: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(de)?;
-        match s.as_str() {
-            "slow" => Ok(BallVelocity::Slow),
-            "medium" => Ok(BallVelocity::Medium),
-            "fast" => Ok(BallVelocity::Fast),
-            _ => Err(serde::de::Error::custom(format!(
-                "Unknown ball velocity `{s}`"
-            ))),
         }
     }
 }
