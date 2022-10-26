@@ -45,12 +45,12 @@ pub fn run() -> Result<()> {
         match toml::from_str(&toml) {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("Failed to parse configuration file: {}", e);
+                eprintln!("Failed to parse configuration file: {e}");
 
                 let popup = ErrorPopup::new(
                     "Configuration Error",
                     "Failed to parse configuration file",
-                    format!("{}", e),
+                    format!("{e}"),
                 );
                 popup.show();
 
@@ -61,7 +61,7 @@ pub fn run() -> Result<()> {
         // Write out default config if none existed before
         let config = config::Config::default();
         let toml = toml::to_string(&config)?;
-        std::fs::write(DEFAULT_INPUT_PATH, &toml)?;
+        std::fs::write(DEFAULT_INPUT_PATH, toml)?;
 
         config
     };
@@ -76,10 +76,10 @@ pub fn run() -> Result<()> {
 
     for alarm in alarms.values() {
         if let Err(e) = audio.preload_file(&alarm.audio_path) {
-            eprintln!("failed to load audio file `{}`: {}", &alarm.audio_path, e);
+            eprintln!("failed to load audio file `{}`: {e}", &alarm.audio_path);
             eprintln!("Does the file exist?");
 
-            let message = format!("Failed to load {}\n{}", &alarm.audio_path, e);
+            let message = format!("Failed to load {}\n{e}", &alarm.audio_path);
             let popup = ErrorPopup::new("Audio Load Error", "Failed to load audio file", message);
             popup.show();
 

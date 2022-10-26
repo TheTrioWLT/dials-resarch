@@ -216,7 +216,7 @@ impl Dial {
     }
 
     fn on_out_of_range(&mut self) {
-        // we preleaded each audio file so this shouldn't fail, and if it does we don't care
+        // we preloaded each audio file so this shouldn't fail, and if it does we don't care
         log::info!("out of range");
         let _ = self.audio.play(self.alarm_id(), &self.alarm_path);
         self.alarm_fired = true;
