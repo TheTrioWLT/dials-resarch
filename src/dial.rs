@@ -1,5 +1,7 @@
 use crate::config::Alarm;
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
@@ -88,6 +90,14 @@ impl DialAlarm {
             time,
             correct_key,
         }
+    }
+
+    /// Gets a unique identifier of this dial alarm
+    pub fn get_id(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        hasher.write_usize(self.row_id);
+        hasher.write_usize(self.dial_id);
+        hasher.finish()
     }
 }
 
@@ -206,10 +216,17 @@ impl Dial {
     }
 
     fn on_out_of_range(&mut self) {
-        // we preleaded each audio file so this shouldn't fail, and if it does we don't care
+        // we preloaded each audio file so this shouldn't fail, and if it does we don't care
         log::info!("out of range");
-        let _ = self.audio.play(&self.alarm_path);
+        let _ = self.audio.play(self.alarm_id(), &self.alarm_path);
         self.alarm_fired = true;
+    }
+
+    fn alarm_id(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        hasher.write_usize(self.row_id);
+        hasher.write_usize(self.dial_id);
+        hasher.finish()
     }
 }
 

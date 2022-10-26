@@ -1,16 +1,24 @@
 use anyhow::Result;
-use log::{error, info};
-use rodio::{source::Source, Decoder, OutputStream};
+use rodio::{source::Source, Decoder, OutputStream, Sink};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
+/// A command that can be sent to the audio thread
+#[derive(Debug)]
+enum AudioCommand {
+    /// A command to begin playing an audio sample
+    Play(u64, BadBuffer),
+    /// A command to stop playing an audio sample
+    Stop(u64),
+}
+
 pub struct AudioManager {
     samples: Mutex<HashMap<String, BadBuffer>>,
     _thread: std::thread::JoinHandle<()>,
-    tx: Mutex<mpsc::Sender<BadBuffer>>,
+    tx: Mutex<mpsc::Sender<AudioCommand>>,
 }
 
 impl std::fmt::Debug for AudioManager {
@@ -30,19 +38,33 @@ impl AudioManager {
         })
     }
 
-    fn audio_thread(rx: mpsc::Receiver<BadBuffer>) {
+    fn audio_thread(rx: mpsc::Receiver<AudioCommand>) {
         let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let mut sink_map = HashMap::new();
 
         loop {
             match rx.recv() {
-                Err(_) => break,
-                Ok(sample) => {
-                    log::info!("got sample");
-                    if let Err(e) = stream_handle.play_raw(sample) {
-                        error!("failed to play audio file {}", e);
-                    }
+                Ok(AudioCommand::Play(id, sample)) => {
+                    let sink = match Sink::try_new(&stream_handle) {
+                        Ok(sink) => sink,
+                        Err(e) => {
+                            log::error!("error starting new audio sink {}", e);
+                            continue;
+                        }
+                    };
+
+                    log::info!("got sample, with alarm id {}", id);
+                    // Starts playing the sample
+                    sink.append(sample);
+                    sink_map.insert(id, sink);
                     log::info!("returned from play_raw");
                 }
+                Ok(AudioCommand::Stop(id)) => {
+                    log::info!("Stopping alarm with id: {}", id);
+                    // Drops the Sink
+                    sink_map.remove(&id);
+                }
+                _ => {}
             }
         }
     }
@@ -51,31 +73,36 @@ impl AudioManager {
     /// Returns the sample from the cache, or the new one loaded
     pub fn preload_file(&self, path: &str) -> Result<BadBuffer> {
         let mut guard = self.samples.lock().unwrap();
-        match guard.get(path) {
-            Some(sample) => Ok(sample.clone()),
-            None => {
-                info!("loading sound file {}", path);
-                // Load a sound from a file, using a path relative to Cargo.toml
-                let file = BufReader::new(File::open(path)?);
-                // Decode that sound file into a source
-                let source = Decoder::new(file)?;
-                let samples = source.convert_samples();
-                let buf = BadBuffer::new(samples);
-                guard.insert(String::from(path), buf.clone());
-                Ok(buf)
-            }
+        if let Some(sample) = guard.get(path) {
+            Ok(sample.clone())
+        } else {
+            log::info!("loading sound file {}", path);
+            // Load a sound from a file, using a path relative to Cargo.toml
+            let file = BufReader::new(File::open(path)?);
+            // Decode that sound file into a source
+            let source = Decoder::new(file)?;
+            let samples = source.convert_samples();
+            let buf = BadBuffer::new(samples);
+            guard.insert(String::from(path), buf.clone());
+            Ok(buf)
         }
     }
 
     /// Does its best to play the given alarm sound
-    pub fn play(&self, path: &str) -> Result<()> {
+    pub fn play(&self, id: u64, path: &str) -> Result<()> {
         log::info!("about to preload file");
         let sample = self.preload_file(path)?;
         log::info!("got sample");
         let guard = self.tx.lock().unwrap();
         log::info!("sending sample to other thread");
-        let _ = guard.send(sample);
+        let _ = guard.send(AudioCommand::Play(id, sample));
         Ok(())
+    }
+
+    /// Cancels playing of an alarm sound by its unique alarm id
+    pub fn stop(&self, id: u64) {
+        let guard = self.tx.lock().unwrap();
+        let _ = guard.send(AudioCommand::Stop(id));
     }
 }
 
