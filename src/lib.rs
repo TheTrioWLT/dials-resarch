@@ -174,7 +174,7 @@ fn model(state: &Mutex<AppState>) {
                 }
             }
 
-            while let Some(Event {id, time, event, .. }) = gilrs.next_event() {
+            while let Some(Event {event, .. }) = gilrs.next_event() {
                 if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
                     match axis {
                         gilrs::ev::Axis::LeftStickX => {
