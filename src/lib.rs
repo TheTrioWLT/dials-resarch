@@ -174,14 +174,14 @@ fn model(state: &Mutex<AppState>) {
                 }
             }
 
-            while let Some(Event { event, .. }) = gilrs.next_event() {
+            while let Some(Event {id, time, event, .. }) = gilrs.next_event() {
                 if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
                     match axis {
                         gilrs::ev::Axis::LeftStickX => {
-                            joystick_input_axes[0] = amount;
+                            joystick_input_axes[1] = -amount;
                         }
                         gilrs::ev::Axis::LeftStickY => {
-                            joystick_input_axes[1] = amount;
+                            joystick_input_axes[0] = -amount;
                         }
                         _ => {}
                     }
