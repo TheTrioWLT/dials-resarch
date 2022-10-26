@@ -6,3 +6,7 @@ trial.csv
 *.vim
 
 config.toml
+
+trial.csv
+
+.idea/

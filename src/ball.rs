@@ -3,6 +3,7 @@ use std::f32;
 use eframe::{egui, emath::Vec2};
 use egui::Pos2;
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
@@ -14,12 +15,15 @@ const BALL_SLOW_VELOCITY: f32 = 0.30;
 const BALL_MEDIUM_VELOCITY: f32 = 0.60;
 const BALL_FAST_VELOCITY: f32 = 1.20;
 
-const BALL_NUDGE_RATE: f32 = 1.7;
+const BALL_NUDGE_RATE: f32 = 1.2;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum BallVelocity {
+    #[serde(rename = "slow")]
     Slow,
+    #[serde(rename = "medium")]
     Medium,
+    #[serde(rename = "fast")]
     Fast,
 }
 pub struct Ball {
@@ -76,19 +80,19 @@ impl Ball {
             self.time_running = 0.0;
             self.velocity_change_time_at = rng.gen_range(
                 self.random_direction_change_time_min..=self.random_direction_change_time_max,
-            ) as f32;
+            );
         }
+
         self.pos.x += self.velocity.x * delta_time;
         self.pos.y += self.velocity.y * delta_time;
 
-        let hyp = f32::sqrt(self.velocity.x.powi(2) + self.velocity.y.powi(2));
-
-        self.pos.x += input_axes.x * BALL_NUDGE_RATE * hyp * delta_time;
+        // Based on input
+        self.pos.x += input_axes.x * BALL_NUDGE_RATE * delta_time;
         // Corrects for the fact that positive y here is down
-        self.pos.y -= input_axes.y * BALL_NUDGE_RATE * hyp * delta_time;
+        self.pos.y -= input_axes.y * BALL_NUDGE_RATE * delta_time;
 
         // This is for bounds checking on the ball
-        // The addition or substraction inside the logic is so the circle does not use the center as
+        // The addition or subtraction inside the logic is so the circle does not use the center as
         // the x or y location. This way the circle would not go through some of the borders.
 
         if (self.pos.x + BALL_RADIUS) >= 1.0 {
@@ -110,6 +114,10 @@ impl Ball {
         }
 
         self.time_running += delta_time;
+    }
+
+    pub fn current_rms_error(&self) -> f32 {
+        self.pos.x.powf(2.0) + self.pos.y.powf(2.0) // Distance from the center squared
     }
 
     pub fn pos(&self) -> Pos2 {

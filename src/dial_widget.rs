@@ -6,8 +6,10 @@ use eframe::{
 
 use crate::dial::{DialRange, DIAL_MAX_VALUE};
 
-pub const DIALS_MAX_WIDTH_PERCENT: f32 = 0.9;
-pub const DIALS_HEIGHT_PERCENT: f32 = 0.3;
+pub const DIALS_HEIGHT_PERCENT: f32 = 0.4;
+/// Percentage of the total allocated space for dials
+pub const MAX_DIAL_HEIGHT_PERCENT: f32 = 0.7;
+pub const MAX_DIALS_WIDTH_PERCENT: f32 = 0.9;
 const NUM_DIAL_TICKS: u32 = 10;
 const DIAL_TICK_RADIUS: f32 = 2.0;
 const DIAL_BAR_WIDTH: f32 = 4.0;
@@ -87,7 +89,7 @@ impl DialWidget {
 
             // Draw the needle
             let needle_angle_radians =
-                (self.value / (DIAL_MAX_VALUE as f32) * std::f32::consts::TAU) + DIAL_ANGLE_OFFSET;
+                (self.value / DIAL_MAX_VALUE * std::f32::consts::TAU) + DIAL_ANGLE_OFFSET;
             let needle_inset_radius = radius - DIAL_NEEDLE_INSET;
             let end_position = Pos2::new(
                 center.x + needle_inset_radius * f32::cos(needle_angle_radians),

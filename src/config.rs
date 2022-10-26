@@ -1,5 +1,5 @@
 use crate::ball::BallVelocity;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -7,7 +7,9 @@ pub struct Config {
     pub output_data_path: Option<String>,
 
     pub ball: Ball,
-    pub dials: Vec<Dial>,
+
+    #[serde(rename = "row")]
+    pub dial_rows: Vec<DialRow>,
     pub alarms: Vec<Alarm>,
     pub input_mode: InputMode,
 }
@@ -35,6 +37,13 @@ pub struct Dial {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DialRow {
+    /// A row of dials on the GUI
+    #[serde(rename = "dial")]
+    pub dials: Vec<Dial>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Alarm {
     /// The user defined name of this alarm. Used to match up which alarm is being used in
     /// [`Dial::alarm`]
@@ -57,16 +66,29 @@ impl Default for Config {
                 random_direction_change_time_max: 8.0,
                 velocity_meter: BallVelocity::Slow,
             },
-            dials: (1u32..=5)
-                .map(|i| Dial {
-                    alarm: i.to_string(),
-                    start: i as f32 * 200.0,
-                    end: i as f32 * 200.0 + range_size,
-                    alarm_time: 8.0 + (i as f32) * 6.0,
-                })
-                .collect(),
-
-            alarms: (1u32..=5)
+            dial_rows: vec![
+                DialRow {
+                    dials: (1u32..=3)
+                        .map(|i| Dial {
+                            alarm: i.to_string(),
+                            start: i as f32 * 200.0,
+                            end: i as f32 * 200.0 + range_size,
+                            alarm_time: 8.0 + (i as f32) * 6.0,
+                        })
+                        .collect(),
+                },
+                DialRow {
+                    dials: (4u32..=6)
+                        .map(|i| Dial {
+                            alarm: i.to_string(),
+                            start: i as f32 * 200.0,
+                            end: i as f32 * 200.0 + range_size,
+                            alarm_time: 8.0 + (i as f32) * 6.0,
+                        })
+                        .collect(),
+                },
+            ],
+            alarms: (1u32..=6)
                 .map(|i| Alarm {
                     name: i.to_string(),
                     audio_path: "alarm.wav".to_owned(),
@@ -79,36 +101,6 @@ impl Default for Config {
     }
 }
 
-impl Serialize for BallVelocity {
-    fn serialize<S>(&self, se: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = match self {
-            BallVelocity::Slow => "slow",
-            BallVelocity::Medium => "medium",
-            BallVelocity::Fast => "fast",
-        };
-        s.serialize(se)
-    }
-}
-
-impl<'de> Deserialize<'de> for BallVelocity {
-    fn deserialize<D>(de: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(de)?;
-        match s.as_str() {
-            "slow" => Ok(BallVelocity::Slow),
-            "medium" => Ok(BallVelocity::Medium),
-            "fast" => Ok(BallVelocity::Fast),
-            _ => Err(serde::de::Error::custom(format!(
-                "Unknown ball velocity `{s}`"
-            ))),
-        }
-    }
-}
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone, Copy)]
 pub enum InputMode {

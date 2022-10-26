@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
+const MAX_PATH_SEGMENTS: usize = 8;
+const MIN_PATH_SEGMENTS: usize = 4;
+const AFTER_RESET_PATH_TIME: usize = 3600; // In seconds
+const AFTER_RESET_SECONDS_PER_SEGMENT: f32 = 2.0;
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct DialRange {
@@ -65,18 +69,21 @@ pub struct DialReaction {
     pub millis: u32,
     pub correct_key: bool,
     pub key: char,
+    pub rms_error: f32,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct DialAlarm {
+    pub row_id: usize,
     pub dial_id: usize,
     pub time: Instant,
     pub correct_key: char,
 }
 
 impl DialAlarm {
-    pub fn new(dial_id: usize, time: Instant, correct_key: char) -> Self {
+    pub fn new(row_id: usize, dial_id: usize, time: Instant, correct_key: char) -> Self {
         Self {
+            row_id,
             dial_id,
             time,
             correct_key,
@@ -85,12 +92,13 @@ impl DialAlarm {
 }
 
 impl DialReaction {
-    pub fn new(dial_id: usize, millis: u32, correct_key: bool, key: char) -> Self {
+    pub fn new(dial_id: usize, millis: u32, correct_key: bool, key: char, rms_error: f32) -> Self {
         Self {
             dial_id,
             millis,
             correct_key,
             key,
+            rms_error,
         }
     }
 }
@@ -98,6 +106,7 @@ impl DialReaction {
 #[derive(Debug, Clone)]
 pub struct Dial {
     value: f32,
+    row_id: usize,
     dial_id: usize,
     in_range: DialRange,
     key: char,
@@ -106,22 +115,29 @@ pub struct Dial {
     audio: Arc<crate::audio::AudioManager>,
     random_path: VecDeque<PathSegment>,
     segment_time: f32,
-    time_to_drift: f32,
     travel_direction: f32,
 }
 
 impl Dial {
     pub fn new(
+        row_id: usize,
         dial_id: usize,
         in_range: DialRange,
         alarm: &Alarm,
         audio: Arc<crate::audio::AudioManager>,
         time_to_drift: f32,
     ) -> Self {
-        let random_path = generate_random_dial_path(&in_range, time_to_drift);
+        let random_path = generate_random_dial_path(
+            &in_range,
+            time_to_drift,
+            true,
+            MAX_PATH_SEGMENTS,
+            MIN_PATH_SEGMENTS,
+        );
 
         Self {
             value: in_range.random_in(),
+            row_id,
             dial_id,
             in_range,
             key: alarm.clear_key,
@@ -129,16 +145,22 @@ impl Dial {
             alarm_fired: false,
             random_path,
             segment_time: 0.0,
-            time_to_drift,
             travel_direction: 1.0,
             audio,
         }
     }
 
     pub fn reset(&mut self) {
-        self.random_path = generate_random_dial_path(&self.in_range, self.time_to_drift);
-        self.value = self.in_range().random_in();
-        self.alarm_fired = false;
+        let path_segments =
+            (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
+
+        self.random_path = generate_random_dial_path(
+            &self.in_range,
+            AFTER_RESET_PATH_TIME as f32,
+            false,
+            path_segments,
+            path_segments,
+        );
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
@@ -167,7 +189,7 @@ impl Dial {
         if !self.alarm_fired && !self.in_range.contains(self.value) {
             self.on_out_of_range();
 
-            let dial_alarm = DialAlarm::new(self.dial_id, Instant::now(), self.key);
+            let dial_alarm = DialAlarm::new(self.row_id, self.dial_id, Instant::now(), self.key);
 
             Some(dial_alarm)
         } else {
@@ -188,10 +210,6 @@ impl Dial {
         log::info!("out of range");
         let _ = self.audio.play(&self.alarm_path);
         self.alarm_fired = true;
-    }
-
-    pub fn cheese_play(&self) {
-        let _ = self.audio.play(&self.alarm_path);
     }
 }
 
@@ -230,12 +248,15 @@ impl PathSegment {
 
 /// Generates a new random dial path for the dial to perform within the time_to_drift, and within
 /// the given range.
-fn generate_random_dial_path(range: &DialRange, time_to_drift: f32) -> VecDeque<PathSegment> {
-    const MAX_PATH_SEGMENTS: usize = 8;
-    const MIN_PATH_SEGMENTS: usize = 4;
-
+fn generate_random_dial_path(
+    range: &DialRange,
+    time_to_drift: f32,
+    drift_out: bool,
+    max_path_segments: usize,
+    min_path_segments: usize,
+) -> VecDeque<PathSegment> {
     let num: f32 = rand::random();
-    let num_segments = ((MAX_PATH_SEGMENTS as f32 * num) as usize).max(MIN_PATH_SEGMENTS);
+    let num_segments = ((max_path_segments as f32 * num) as usize).max(min_path_segments);
 
     let mut segments = VecDeque::with_capacity(num_segments);
     let mut last_value = range.random_in();
@@ -256,15 +277,17 @@ fn generate_random_dial_path(range: &DialRange, time_to_drift: f32) -> VecDeque<
         last_value = next_value;
     }
 
-    let end_value = range.slightly_out(last_value);
+    if drift_out {
+        let end_value = range.slightly_out(last_value);
 
-    let last_segment = PathSegment {
-        start: last_value,
-        end: end_value,
-        duration,
-    };
+        let last_segment = PathSegment {
+            start: last_value,
+            end: end_value,
+            duration,
+        };
 
-    segments.push_back(last_segment);
+        segments.push_back(last_segment);
+    }
 
     segments
 }
