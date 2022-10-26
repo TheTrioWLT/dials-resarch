@@ -41,8 +41,8 @@ pub fn run() -> Result<()> {
         ..eframe::NativeOptions::default()
     };
 
-    let mut config = match std::fs::read_to_string(DEFAULT_INPUT_PATH) {
-        Ok(toml) => match toml::from_str(&toml) {
+    let mut config = if let Ok(toml) = std::fs::read_to_string(DEFAULT_INPUT_PATH) {
+        match toml::from_str(&toml) {
             Ok(t) => t,
             Err(e) => {
                 eprintln!("Failed to parse configuration file: {}", e);
@@ -56,15 +56,14 @@ pub fn run() -> Result<()> {
 
                 std::process::exit(1);
             }
-        },
-        Err(_) => {
-            // Write out default config if none existed before
-            let config = config::Config::default();
-            let toml = toml::to_string(&config)?;
-            std::fs::write(DEFAULT_INPUT_PATH, &toml)?;
-
-            config
         }
+    } else {
+        // Write out default config if none existed before
+        let config = config::Config::default();
+        let toml = toml::to_string(&config)?;
+        std::fs::write(DEFAULT_INPUT_PATH, &toml)?;
+
+        config
     };
 
     validate_config(&mut config);
@@ -126,6 +125,7 @@ pub fn run() -> Result<()> {
                 .clone()
                 .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
         );
+        state.audio_manager = Some(audio);
     }
 
     thread::spawn(move || model(&STATE));
@@ -182,6 +182,7 @@ fn model(state: &Mutex<AppState>) {
                     );
 
                     state.dial_rows[alarm.row_id][alarm.dial_id].reset();
+                    state.audio_manager.as_ref().unwrap().stop(alarm.get_id());
 
                     state.session_output.add_reaction(reaction);
 
