@@ -1,5 +1,6 @@
 target/
 Cargo.lock
+trial.csv
 
 # Don't discriminate against Vim users
 *.vim
