@@ -2,7 +2,7 @@ use crate::config::Alarm;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
-use std::{collections::VecDeque, sync::Arc, time::Instant};
+use std::{collections::VecDeque, time::Instant};
 
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
 const MAX_PATH_SEGMENTS: usize = 8;
@@ -80,18 +80,10 @@ pub struct DialAlarm {
     pub dial_id: usize,
     pub time: Instant,
     pub correct_key: char,
+    pub sound_id: u64,
 }
 
 impl DialAlarm {
-    pub fn new(row_id: usize, dial_id: usize, time: Instant, correct_key: char) -> Self {
-        Self {
-            row_id,
-            dial_id,
-            time,
-            correct_key,
-        }
-    }
-
     /// Gets a unique identifier of this dial alarm
     pub fn get_id(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -122,7 +114,6 @@ pub struct Dial {
     key: char,
     alarm_path: String,
     alarm_fired: bool,
-    audio: Arc<crate::audio::AudioManager>,
     random_path: VecDeque<PathSegment>,
     segment_time: f32,
     travel_direction: f32,
@@ -134,7 +125,6 @@ impl Dial {
         dial_id: usize,
         in_range: DialRange,
         alarm: &Alarm,
-        audio: Arc<crate::audio::AudioManager>,
         time_to_drift: f32,
     ) -> Self {
         let random_path = generate_random_dial_path(
@@ -156,7 +146,6 @@ impl Dial {
             random_path,
             segment_time: 0.0,
             travel_direction: 1.0,
-            audio,
         }
     }
 
@@ -197,14 +186,17 @@ impl Dial {
         }
 
         if !self.alarm_fired && !self.in_range.contains(self.value) {
-            self.on_out_of_range();
+            self.alarm_fired = true;
 
-            let dial_alarm = DialAlarm::new(self.row_id, self.dial_id, Instant::now(), self.key);
-
-            Some(dial_alarm)
+            Some(DialAlarm::from(&*self))
         } else {
             None
         }
+    }
+
+    pub fn play_alarm(&self, audio: &crate::AudioManager) {
+        // we preloaded each audio file so this shouldn't fail, and if it does we don't care
+        let _ = audio.play(self.alarm_id(), &self.alarm_path);
     }
 
     pub fn value(&self) -> f32 {
@@ -215,18 +207,23 @@ impl Dial {
         self.in_range
     }
 
-    fn on_out_of_range(&mut self) {
-        // we preloaded each audio file so this shouldn't fail, and if it does we don't care
-        log::info!("out of range");
-        let _ = self.audio.play(self.alarm_id(), &self.alarm_path);
-        self.alarm_fired = true;
-    }
-
     fn alarm_id(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         hasher.write_usize(self.row_id);
         hasher.write_usize(self.dial_id);
         hasher.finish()
+    }
+}
+
+impl From<&Dial> for DialAlarm {
+    fn from(d: &Dial) -> Self {
+        Self {
+            row_id: d.row_id,
+            dial_id: d.dial_id,
+            time: Instant::now(),
+            correct_key: d.key,
+            sound_id: d.alarm_id(),
+        }
     }
 }
 

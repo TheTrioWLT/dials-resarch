@@ -1,16 +1,16 @@
 use anyhow::Result;
-use audio::AudioManager;
-use dial::{Dial, DialRange};
 use lazy_static::lazy_static;
 use output::SessionOutput;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::Mutex,
     thread,
     time::{Duration, Instant},
 };
 
-use app::{AppState, DialsApp};
+pub use app::{AppState, DialsApp};
+pub use audio::AudioManager;
+pub use dial::{Dial, DialRange};
 
 use crate::error_popup::ErrorPopup;
 use crate::{ball::Ball, dial::DialReaction};
@@ -68,7 +68,7 @@ pub fn run() -> Result<()> {
 
     validate_config(&mut config);
 
-    let audio = Arc::new(AudioManager::new()?);
+    let audio = AudioManager::new()?;
 
     // Maps alarm names to alarm structs
     let alarms: HashMap<&str, &config::Alarm> =
@@ -102,7 +102,6 @@ pub fn run() -> Result<()> {
                         id,
                         DialRange::new(dial.start, dial.end),
                         alarm,
-                        Arc::clone(&audio),
                         dial.alarm_time,
                     )
                 })
@@ -137,7 +136,7 @@ pub fn run() -> Result<()> {
 }
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
-fn model(state: &Mutex<AppState>, audio: Arc<AudioManager>) {
+fn model(state: &Mutex<AppState>, audio: AudioManager) {
     let mut last_update = Instant::now();
 
     let total_num_alarms = {
@@ -158,6 +157,7 @@ fn model(state: &Mutex<AppState>, audio: Arc<AudioManager>) {
                 for dial in row.iter_mut() {
                     if let Some(alarm) = dial.update(delta_time) {
                         alarms.push(alarm);
+                        dial.play_alarm(&audio);
                     }
                 }
             }

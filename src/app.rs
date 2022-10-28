@@ -34,6 +34,12 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
         Self {
             dial_rows: Vec::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
