@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::{
     collections::{HashMap, VecDeque},
     sync::Mutex,
@@ -18,7 +17,6 @@ use crate::{
     },
     output::SessionOutput,
     tracking_widget::TrackingWidget,
-    AudioManager,
 };
 
 pub struct AppState {
@@ -32,7 +30,6 @@ pub struct AppState {
     pub last_keys: HashMap<Key, bool>,
     pub session_output: SessionOutput,
     pub num_alarms_done: usize,
-    pub audio_manager: Option<Arc<AudioManager>>,
 }
 
 impl AppState {
@@ -48,7 +45,6 @@ impl AppState {
             last_keys: HashMap::new(),
             session_output: SessionOutput::new(String::new()),
             num_alarms_done: 0,
-            audio_manager: None,
         }
     }
 }

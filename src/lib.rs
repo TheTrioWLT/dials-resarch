@@ -125,10 +125,9 @@ pub fn run() -> Result<()> {
                 .clone()
                 .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
         );
-        state.audio_manager = Some(audio);
     }
 
-    thread::spawn(move || model(&STATE));
+    thread::spawn(move || model(&STATE, audio));
 
     eframe::run_native(
         "Dials App",
@@ -138,7 +137,7 @@ pub fn run() -> Result<()> {
 }
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
-fn model(state: &Mutex<AppState>) {
+fn model(state: &Mutex<AppState>, audio: Arc<AudioManager>) {
     let mut last_update = Instant::now();
 
     let total_num_alarms = {
@@ -182,7 +181,7 @@ fn model(state: &Mutex<AppState>) {
                     );
 
                     state.dial_rows[alarm.row_id][alarm.dial_id].reset();
-                    state.audio_manager.as_ref().unwrap().stop(alarm.get_id());
+                    audio.stop(alarm.get_id());
 
                     state.session_output.add_reaction(reaction);
 

@@ -10,13 +10,13 @@ use std::time::Duration;
 #[derive(Debug)]
 enum AudioCommand {
     /// A command to begin playing an audio sample
-    Play(u64, BadBuffer),
+    Play(u64, SoundSample),
     /// A command to stop playing an audio sample
     Stop(u64),
 }
 
 pub struct AudioManager {
-    samples: Mutex<HashMap<String, BadBuffer>>,
+    samples: Mutex<HashMap<String, SoundSample>>,
     _thread: std::thread::JoinHandle<()>,
     tx: Mutex<mpsc::Sender<AudioCommand>>,
 }
@@ -71,7 +71,7 @@ impl AudioManager {
 
     /// Loads a file into the samples cache if it hasn't been loaded already.
     /// Returns the sample from the cache, or the new one loaded
-    pub fn preload_file(&self, path: &str) -> Result<BadBuffer> {
+    pub fn preload_file(&self, path: &str) -> Result<SoundSample> {
         let mut guard = self.samples.lock().unwrap();
         if let Some(sample) = guard.get(path) {
             Ok(sample.clone())
@@ -82,7 +82,7 @@ impl AudioManager {
             // Decode that sound file into a source
             let source = Decoder::new(file)?;
             let samples = source.convert_samples();
-            let buf = BadBuffer::new(samples);
+            let buf = SoundSample::new(samples);
             guard.insert(String::from(path), buf.clone());
             Ok(buf)
         }
@@ -107,7 +107,7 @@ impl AudioManager {
 }
 
 #[derive(Clone, Debug)]
-pub struct BadBuffer {
+pub struct SoundSample {
     channels: u16,
     sample_rate: u32,
     total_duration: Option<Duration>,
@@ -115,7 +115,9 @@ pub struct BadBuffer {
     offset: usize,
 }
 
-impl BadBuffer {
+/// Custom `rodio::Source` that holds a shallow copy of its data to allow for easy cloning since
+/// playing a sample consumes self
+impl SoundSample {
     pub fn new<S>(source: S) -> Self
     where
         S: Source<Item = f32> + Send + 'static,
@@ -135,7 +137,7 @@ impl BadBuffer {
     }
 }
 
-impl Source for BadBuffer {
+impl Source for SoundSample {
     fn current_frame_len(&self) -> Option<usize> {
         None
     }
@@ -153,7 +155,7 @@ impl Source for BadBuffer {
     }
 }
 
-impl Iterator for BadBuffer {
+impl Iterator for SoundSample {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
