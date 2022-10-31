@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{
     collections::{HashMap, VecDeque},
     sync::Mutex,
@@ -11,12 +12,14 @@ use eframe::{
 
 use crate::{
     ball::Ball,
-    dial::{Dial, TriggeredAlarm},
+    config::InputMode,
+    dial::{Dial, DialAlarm},
     dial_widget::{
         DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
     },
     output::SessionOutput,
     tracking_widget::TrackingWidget,
+    AudioManager,
 };
 
 pub struct AppState {
@@ -26,20 +29,16 @@ pub struct AppState {
     pub input_x: [f32; 2],
     pub input_y: [f32; 2],
     pub pressed_key: Option<char>,
-    pub queued_alarms: VecDeque<TriggeredAlarm>,
+    pub queued_alarms: VecDeque<DialAlarm>,
     pub last_keys: HashMap<Key, bool>,
+    pub input_mode: InputMode,
     pub session_output: SessionOutput,
     pub num_alarms_done: usize,
+    pub audio_manager: Option<Arc<AudioManager>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
-        Default::default()
-    }
-}
-
-impl Default for AppState {
-    fn default() -> Self {
         Self {
             dial_rows: Vec::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
@@ -49,8 +48,10 @@ impl Default for AppState {
             pressed_key: None,
             queued_alarms: VecDeque::new(),
             last_keys: HashMap::new(),
+            input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
             num_alarms_done: 0,
+            audio_manager: None,
         }
     }
 }
@@ -249,3 +250,4 @@ impl eframe::App for DialsApp {
         ctx.request_repaint();
     }
 }
+

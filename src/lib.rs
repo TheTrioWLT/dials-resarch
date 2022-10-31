@@ -1,3 +1,23 @@
+use anyhow::Result;
+
+use audio::AudioManager;
+use dial::{Dial, DialRange};
+use eframe::epaint::Vec2;
+use lazy_static::lazy_static;
+use output::SessionOutput;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    thread,
+    time::{Duration, Instant},
+};
+
+use app::{AppState, DialsApp};
+
+use crate::error_popup::ErrorPopup;
+use crate::{ball::Ball, dial::DialReaction};
+use gilrs::{Event, Gilrs};
+
 mod app;
 mod ball;
 mod dial;
@@ -8,23 +28,6 @@ mod tracking_widget;
 
 pub mod audio;
 pub mod config;
-
-use anyhow::Result;
-use lazy_static::lazy_static;
-use output::SessionOutput;
-use std::{
-    collections::HashMap,
-    sync::Mutex,
-    thread,
-    time::{Duration, Instant},
-};
-
-pub use app::{AppState, DialsApp};
-pub use audio::AudioManager;
-pub use dial::{Dial, DialRange};
-
-use crate::error_popup::ErrorPopup;
-use crate::{ball::Ball, output::DialReaction};
 
 pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
 pub const DEFAULT_OUTPUT_PATH: &str = "./trial.csv";
@@ -68,7 +71,7 @@ pub fn run() -> Result<()> {
 
     validate_config(&mut config);
 
-    let audio = AudioManager::new()?;
+    let audio = Arc::new(AudioManager::new()?);
 
     // Maps alarm names to alarm structs
     let alarms: HashMap<&str, &config::Alarm> =
@@ -95,13 +98,14 @@ pub fn run() -> Result<()> {
             row.dials
                 .iter()
                 .enumerate()
-                .map(|(col_id, dial)| {
+                .map(|(id, dial)| {
                     let alarm = alarms[dial.alarm.as_str()];
                     Dial::new(
                         row_id,
-                        col_id,
+                        id,
                         DialRange::new(dial.start, dial.end),
                         alarm,
+                        Arc::clone(&audio),
                         dial.alarm_time,
                     )
                 })
@@ -112,6 +116,7 @@ pub fn run() -> Result<()> {
     {
         let mut state = STATE.lock().unwrap();
 
+        state.input_mode = config.input_mode;
         state.dial_rows = dial_rows;
         state.ball = Ball::new(
             config.ball.random_direction_change_time_min,
@@ -124,9 +129,10 @@ pub fn run() -> Result<()> {
                 .clone()
                 .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
         );
+        state.audio_manager = Some(audio);
     }
 
-    thread::spawn(move || model(&STATE, audio));
+    thread::spawn(move || model(&STATE));
 
     eframe::run_native(
         "Dials App",
@@ -136,11 +142,18 @@ pub fn run() -> Result<()> {
 }
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
-fn model(state: &Mutex<AppState>, audio: AudioManager) {
+fn model(state: &Mutex<AppState>) {
+    let mut gilrs = Gilrs::new().unwrap();
+
     let mut last_update = Instant::now();
 
+    for (_id, gamepad) in gilrs.gamepads() {
+        log::info!("Joystick {}: {:?}", gamepad.name(), gamepad.power_info());
+    }
+
+    let mut joystick_input_axes = Vec2::default();
     let total_num_alarms = {
-        let state = state.lock().unwrap();
+        let state = state.lock().expect("This shouldn't fail silently");
 
         state.dial_rows.iter().map(|r| r.len()).sum()
     };
@@ -150,53 +163,70 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
         let delta_time = last_update.elapsed().as_secs_f32();
 
-        let mut state = state.lock().unwrap();
+        if let Ok(mut state) = state.lock() {
+            let mut alarms = Vec::new();
 
-        // We need an extra vec here so that we can mutably borrow both `state.dial_rows` and
-        // `
-        let mut alarms = Vec::new();
-
-        for row in state.dial_rows.iter_mut() {
-            for dial in row.iter_mut() {
-                if let Some(alarm) = dial.update(delta_time, &audio) {
-                    alarms.push(alarm);
+            for row in state.dial_rows.iter_mut() {
+                for dial in row.iter_mut() {
+                    if let Some(alarm) = dial.update(delta_time) {
+                        alarms.push(alarm);
+                    }
                 }
             }
-        }
-        state.queued_alarms.extend(alarms);
 
-        let input_axes = state.input_axes;
-        state.ball.update(input_axes, delta_time);
+            while let Some(Event { event, .. }) = gilrs.next_event() {
+                if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
+                    match axis {
+                        gilrs::ev::Axis::LeftStickX => {
+                            joystick_input_axes[1] = -amount;
+                        }
+                        gilrs::ev::Axis::LeftStickY => {
+                            joystick_input_axes[0] = -amount;
+                        }
+                        _ => {}
+                    }
+                }
+            }
 
-        if let Some(key) = state.pressed_key {
-            if let Some(alarm) = state.queued_alarms.pop_front() {
-                let millis = alarm.time.elapsed().as_millis() as u32;
+            state.queued_alarms.extend(alarms);
 
-                let reaction = DialReaction::new(
-                    alarm.col_id,
-                    millis,
-                    alarm.correct_key == key,
-                    key,
-                    state.ball.current_rms_error(),
-                );
+            let input_axes = match state.input_mode {
+                config::InputMode::Joystick => joystick_input_axes,
+                config::InputMode::Keyboard => state.input_axes,
+            };
 
-                state.dial_rows[alarm.row_id][alarm.col_id].reset();
-                audio.stop(alarm.id);
+            state.ball.update(input_axes, delta_time);
 
-                state.session_output.add_reaction(reaction);
+            if let Some(key) = state.pressed_key {
+                if let Some(alarm) = state.queued_alarms.pop_front() {
+                    let millis = alarm.time.elapsed().as_millis() as u32;
 
-                state.num_alarms_done += 1;
-
-                if state.num_alarms_done == total_num_alarms {
-                    state.session_output.write_to_file();
-                    log::info!(
-                        "wrote session output to file: {}",
-                        state.session_output.output_path
+                    let reaction = DialReaction::new(
+                        alarm.dial_id,
+                        millis,
+                        alarm.correct_key == key,
+                        key,
+                        state.ball.current_rms_error(),
                     );
-                }
-            }
 
-            state.pressed_key = None;
+                    state.dial_rows[alarm.row_id][alarm.dial_id].reset();
+                    state.audio_manager.as_ref().unwrap().stop(alarm.get_id());
+
+                    state.session_output.add_reaction(reaction);
+
+                    state.num_alarms_done += 1;
+
+                    if state.num_alarms_done == total_num_alarms {
+                        state.session_output.write_to_file();
+                        log::info!(
+                            "wrote session output to file: {}",
+                            state.session_output.output_path
+                        );
+                    }
+                }
+
+                state.pressed_key = None;
+            }
         }
 
         last_update = Instant::now();
@@ -226,3 +256,4 @@ fn validate_config(config: &mut config::Config) {
         }
     }
 }
+
