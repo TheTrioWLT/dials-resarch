@@ -63,7 +63,7 @@ pub fn run() -> Result<()> {
         Err(_) => {
             // Write out default config if none existed before
             let config = config::Config::default();
-            let toml = toml::to_string(&config)?;
+            let toml = toml::to_string(&config).unwrap();
             std::fs::write(DEFAULT_INPUT_PATH, &toml)?;
 
             config
@@ -174,7 +174,7 @@ fn model(state: &Mutex<AppState>) {
                 }
             }
 
-            while let Some(Event {event, .. }) = gilrs.next_event() {
+            while let Some(Event { event, .. }) = gilrs.next_event() {
                 if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
                     match axis {
                         gilrs::ev::Axis::LeftStickX => {
