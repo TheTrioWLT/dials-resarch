@@ -15,7 +15,7 @@ use std::{
 use app::{AppState, DialsApp};
 
 use crate::error_popup::ErrorPopup;
-use crate::{ball::Ball, dial::DialReaction};
+use crate::{ball::Ball, output::DialReaction};
 use gilrs::{Event, Gilrs};
 
 mod app;
@@ -168,7 +168,7 @@ fn model(state: &Mutex<AppState>) {
 
             for row in state.dial_rows.iter_mut() {
                 for dial in row.iter_mut() {
-                    if let Some(alarm) = dial.update(delta_time) {
+                    if let Some(alarm) = dial.update(delta_time, &audio) {
                         alarms.push(alarm);
                     }
                 }
@@ -256,4 +256,3 @@ fn validate_config(config: &mut config::Config) {
         }
     }
 }
-
