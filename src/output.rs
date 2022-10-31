@@ -28,7 +28,7 @@ impl SessionOutput {
             .open(&self.output_path)
             .unwrap();
 
-        writeln!(file, "{}", CSV_HEADERS).unwrap();
+        writeln!(file, "{CSV_HEADERS}").unwrap();
 
         for reaction in &self.dial_reactions {
             writeln!(

@@ -1,22 +1,19 @@
+use crate::error_popup::ErrorPopup;
+use crate::{ball::Ball, dial::DialReaction};
 use anyhow::Result;
-
+pub use app::{AppState, DialsApp};
 use audio::AudioManager;
 use dial::{Dial, DialRange};
 use eframe::epaint::Vec2;
+use gilrs::{Event, Gilrs};
 use lazy_static::lazy_static;
 use output::SessionOutput;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::Mutex,
     thread,
     time::{Duration, Instant},
 };
-
-use app::{AppState, DialsApp};
-
-use crate::error_popup::ErrorPopup;
-use crate::{ball::Ball, dial::DialReaction};
-use gilrs::{Event, Gilrs};
 
 mod app;
 mod ball;
@@ -44,35 +41,34 @@ pub fn run() -> Result<()> {
         ..eframe::NativeOptions::default()
     };
 
-    let mut config = match std::fs::read_to_string(DEFAULT_INPUT_PATH) {
-        Ok(toml) => match toml::from_str(&toml) {
+    let mut config = if let Ok(toml) = std::fs::read_to_string(DEFAULT_INPUT_PATH) {
+        match toml::from_str(&toml) {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("Failed to parse configuration file: {}", e);
+                eprintln!("Failed to parse configuration file: {e}");
 
                 let popup = ErrorPopup::new(
                     "Configuration Error",
                     "Failed to parse configuration file",
-                    format!("{}", e),
+                    format!("{e}"),
                 );
                 popup.show();
 
                 std::process::exit(1);
             }
-        },
-        Err(_) => {
-            // Write out default config if none existed before
-            let config = config::Config::default();
-            let toml = toml::to_string(&config).unwrap();
-            std::fs::write(DEFAULT_INPUT_PATH, &toml)?;
-
-            config
         }
+    } else {
+        // Write out default config if none existed before
+        let config = config::Config::default();
+        let toml = toml::to_string(&config)?;
+        std::fs::write(DEFAULT_INPUT_PATH, toml)?;
+
+        config
     };
 
     validate_config(&mut config);
 
-    let audio = Arc::new(AudioManager::new()?);
+    let audio = AudioManager::new()?;
 
     // Maps alarm names to alarm structs
     let alarms: HashMap<&str, &config::Alarm> =
@@ -80,10 +76,10 @@ pub fn run() -> Result<()> {
 
     for alarm in alarms.values() {
         if let Err(e) = audio.preload_file(&alarm.audio_path) {
-            eprintln!("failed to load audio file `{}`: {}", &alarm.audio_path, e);
+            eprintln!("failed to load audio file `{}`: {e}", &alarm.audio_path);
             eprintln!("Does the file exist?");
 
-            let message = format!("Failed to load {}\n{}", &alarm.audio_path, e);
+            let message = format!("Failed to load {}\n{e}", &alarm.audio_path);
             let popup = ErrorPopup::new("Audio Load Error", "Failed to load audio file", message);
             popup.show();
 
@@ -106,7 +102,6 @@ pub fn run() -> Result<()> {
                         id,
                         DialRange::new(dial.start, dial.end),
                         alarm,
-                        Arc::clone(&audio),
                         dial.alarm_time,
                     )
                 })
@@ -132,7 +127,7 @@ pub fn run() -> Result<()> {
         );
     }
 
-    thread::spawn(move || model(&STATE));
+    thread::spawn(move || model(&STATE, audio));
 
     eframe::run_native(
         "Dials App",
@@ -142,10 +137,10 @@ pub fn run() -> Result<()> {
 }
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
-fn model(state: &Mutex<AppState>) {
-    let mut gilrs = Gilrs::new().unwrap();
-
+fn model(state: &Mutex<AppState>, audio: AudioManager) {
     let mut last_update = Instant::now();
+
+    let mut gilrs = Gilrs::new().unwrap();
 
     for (_id, gamepad) in gilrs.gamepads() {
         println!("{} is {:?} ", gamepad.name(), gamepad.power_info());
@@ -170,6 +165,7 @@ fn model(state: &Mutex<AppState>) {
                 for dial in row.iter_mut() {
                     if let Some(alarm) = dial.update(delta_time) {
                         alarms.push(alarm);
+                        dial.play_alarm(&audio);
                     }
                 }
             }
@@ -210,6 +206,7 @@ fn model(state: &Mutex<AppState>) {
                     );
 
                     state.dial_rows[alarm.row_id][alarm.dial_id].reset();
+                    audio.stop(alarm.get_id());
 
                     state.session_output.add_reaction(reaction);
 
