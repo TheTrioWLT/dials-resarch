@@ -70,7 +70,6 @@ impl Ball {
     ///
     /// The center of the screen would be the (screen_width / 2, screen_height / 2) this can be
     /// translated to (0.0, 0.0).
-    ///
     pub fn update(&mut self, input_axes: Vec2, delta_time: f32) {
         let mut rng = rand::thread_rng();
 

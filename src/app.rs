@@ -11,7 +11,7 @@ use eframe::{
 
 use crate::{
     ball::Ball,
-    dial::{Dial, DialAlarm},
+    dial::{Dial, TriggeredAlarm},
     dial_widget::{
         DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
     },
@@ -26,7 +26,7 @@ pub struct AppState {
     pub input_x: [f32; 2],
     pub input_y: [f32; 2],
     pub pressed_key: Option<char>,
-    pub queued_alarms: VecDeque<DialAlarm>,
+    pub queued_alarms: VecDeque<TriggeredAlarm>,
     pub last_keys: HashMap<Key, bool>,
     pub session_output: SessionOutput,
     pub num_alarms_done: usize,

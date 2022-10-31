@@ -6,13 +6,15 @@ use std::io::BufReader;
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
+use crate::dial::DialId;
+
 /// A command that can be sent to the audio thread
 #[derive(Debug)]
 enum AudioCommand {
     /// A command to begin playing an audio sample
-    Play(u64, SoundSample),
+    Play(DialId, SoundSample),
     /// A command to stop playing an audio sample
-    Stop(u64),
+    Stop(DialId),
 }
 
 pub struct AudioManager {
@@ -89,7 +91,7 @@ impl AudioManager {
     }
 
     /// Does its best to play the given alarm sound
-    pub fn play(&self, id: u64, path: &str) -> Result<()> {
+    pub fn play(&self, id: DialId, path: &str) -> Result<()> {
         log::info!("about to preload file");
         let sample = self.preload_file(path)?;
         log::info!("got sample");
@@ -100,7 +102,7 @@ impl AudioManager {
     }
 
     /// Cancels playing of an alarm sound by its unique alarm id
-    pub fn stop(&self, id: u64) {
+    pub fn stop(&self, id: DialId) {
         let guard = self.tx.lock().unwrap();
         let _ = guard.send(AudioCommand::Stop(id));
     }

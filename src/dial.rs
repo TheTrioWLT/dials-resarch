@@ -1,7 +1,5 @@
 use crate::config::Alarm;
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hasher;
 use std::{collections::VecDeque, time::Instant};
 
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
@@ -9,6 +7,9 @@ const MAX_PATH_SEGMENTS: usize = 8;
 const MIN_PATH_SEGMENTS: usize = 4;
 const AFTER_RESET_PATH_TIME: usize = 3600; // In seconds
 const AFTER_RESET_SECONDS_PER_SEGMENT: f32 = 2.0;
+
+/// The largest number of dials in a row or column
+const MAX_DIAL_GRID_SIZE: usize = 2 << 20;
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct DialRange {
@@ -65,51 +66,21 @@ impl DialRange {
     }
 }
 
+/// Data associated with an alarm that has drifted out of range
 #[derive(Debug, Copy, Clone)]
-pub struct DialReaction {
-    pub dial_id: usize,
-    pub millis: u32,
-    pub correct_key: bool,
-    pub key: char,
-    pub rms_error: f32,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct DialAlarm {
+pub struct TriggeredAlarm {
     pub row_id: usize,
-    pub dial_id: usize,
+    pub col_id: usize,
     pub time: Instant,
     pub correct_key: char,
-    pub sound_id: u64,
-}
-
-impl DialAlarm {
-    /// Gets a unique identifier of this dial alarm
-    pub fn get_id(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        hasher.write_usize(self.row_id);
-        hasher.write_usize(self.dial_id);
-        hasher.finish()
-    }
-}
-
-impl DialReaction {
-    pub fn new(dial_id: usize, millis: u32, correct_key: bool, key: char, rms_error: f32) -> Self {
-        Self {
-            dial_id,
-            millis,
-            correct_key,
-            key,
-            rms_error,
-        }
-    }
+    pub id: DialId,
 }
 
 #[derive(Debug, Clone)]
 pub struct Dial {
     value: f32,
     row_id: usize,
-    dial_id: usize,
+    col_id: usize,
     in_range: DialRange,
     key: char,
     alarm_path: String,
@@ -119,14 +90,28 @@ pub struct Dial {
     travel_direction: f32,
 }
 
+/// A dial's unique id
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct DialId(u64);
+
+impl std::fmt::Display for DialId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // format in hex since we do major bit shifting so the col and row are easily visible
+        f.write_fmt(format_args!("{:X}", self.0))
+    }
+}
+
 impl Dial {
     pub fn new(
         row_id: usize,
-        dial_id: usize,
+        col_id: usize,
         in_range: DialRange,
         alarm: &Alarm,
         time_to_drift: f32,
     ) -> Self {
+        assert!(row_id >= MAX_DIAL_GRID_SIZE);
+        assert!(col_id >= MAX_DIAL_GRID_SIZE);
+
         let random_path = generate_random_dial_path(
             &in_range,
             time_to_drift,
@@ -138,7 +123,7 @@ impl Dial {
         Self {
             value: in_range.random_in(),
             row_id,
-            dial_id,
+            col_id,
             in_range,
             key: alarm.clear_key,
             alarm_path: alarm.audio_path.clone(),
@@ -163,8 +148,14 @@ impl Dial {
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
-    /// A DialReaction data structure is returned if this dial has gone out of range.
-    pub fn update(&mut self, delta_time: f32) -> Option<DialAlarm> {
+    ///
+    /// If this dial has gone out of range since the last update, the dial's alarm sound is played
+    /// and `Some` is returned containing the relevant [`TriggeredAlarm`] data.
+    pub fn update(
+        &mut self,
+        delta_time: f32,
+        audio: &crate::AudioManager,
+    ) -> Option<TriggeredAlarm> {
         // Update the current time within the segment
         self.segment_time += delta_time;
 
@@ -187,16 +178,13 @@ impl Dial {
 
         if !self.alarm_fired && !self.in_range.contains(self.value) {
             self.alarm_fired = true;
+            // we preloaded each audio file so this shouldn't fail, and if it does we don't care
+            let _ = audio.play(self.dial_id(), &self.alarm_path);
 
-            Some(DialAlarm::from(&*self))
+            Some(TriggeredAlarm::from(&*self))
         } else {
             None
         }
-    }
-
-    pub fn play_alarm(&self, audio: &crate::AudioManager) {
-        // we preloaded each audio file so this shouldn't fail, and if it does we don't care
-        let _ = audio.play(self.alarm_id(), &self.alarm_path);
     }
 
     pub fn value(&self) -> f32 {
@@ -207,22 +195,22 @@ impl Dial {
         self.in_range
     }
 
-    fn alarm_id(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        hasher.write_usize(self.row_id);
-        hasher.write_usize(self.dial_id);
-        hasher.finish()
+    /// A unique id for this dial
+    fn dial_id(&self) -> DialId {
+        // `row_id` and `col_id` are both less than `MAX_DIAL_GRID_SIZE`, therefore shifting the
+        // row by 32 bits is guarnteed to give a perfect hash without collisions
+        DialId((self.row_id as u64) << 32 | self.col_id as u64)
     }
 }
 
-impl From<&Dial> for DialAlarm {
+impl From<&Dial> for TriggeredAlarm {
     fn from(d: &Dial) -> Self {
         Self {
             row_id: d.row_id,
-            dial_id: d.dial_id,
+            col_id: d.col_id,
             time: Instant::now(),
             correct_key: d.key,
-            sound_id: d.alarm_id(),
+            id: d.dial_id(),
         }
     }
 }

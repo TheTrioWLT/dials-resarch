@@ -1,12 +1,21 @@
+use derive_new::new;
 use std::io::Write;
-
-use crate::dial::DialReaction;
 
 const CSV_HEADERS: &str = "alarm, rms_error, response_time, correct_key, key";
 
 pub struct SessionOutput {
     pub dial_reactions: Vec<DialReaction>,
     pub output_path: String,
+}
+
+/// Information about a user's responce to an instance of an alarm being fired
+#[derive(Debug, Copy, Clone, new)]
+pub struct DialReaction {
+    pub dial_id: usize,
+    pub millis: u32,
+    pub correct_key: bool,
+    pub key: char,
+    pub rms_error: f32,
 }
 
 impl SessionOutput {

@@ -1,3 +1,14 @@
+mod app;
+mod ball;
+mod dial;
+mod dial_widget;
+mod error_popup;
+mod output;
+mod tracking_widget;
+
+pub mod audio;
+pub mod config;
+
 use anyhow::Result;
 use lazy_static::lazy_static;
 use output::SessionOutput;
@@ -13,18 +24,7 @@ pub use audio::AudioManager;
 pub use dial::{Dial, DialRange};
 
 use crate::error_popup::ErrorPopup;
-use crate::{ball::Ball, dial::DialReaction};
-
-mod app;
-mod ball;
-mod dial;
-mod dial_widget;
-mod error_popup;
-mod output;
-mod tracking_widget;
-
-pub mod audio;
-pub mod config;
+use crate::{ball::Ball, output::DialReaction};
 
 pub const DEFAULT_INPUT_PATH: &str = "./config.toml";
 pub const DEFAULT_OUTPUT_PATH: &str = "./trial.csv";
@@ -95,11 +95,11 @@ pub fn run() -> Result<()> {
             row.dials
                 .iter()
                 .enumerate()
-                .map(|(id, dial)| {
+                .map(|(col_id, dial)| {
                     let alarm = alarms[dial.alarm.as_str()];
                     Dial::new(
                         row_id,
-                        id,
+                        col_id,
                         DialRange::new(dial.start, dial.end),
                         alarm,
                         dial.alarm_time,
@@ -140,7 +140,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     let mut last_update = Instant::now();
 
     let total_num_alarms = {
-        let state = state.lock().expect("This shouldn't fail silently");
+        let state = state.lock().unwrap();
 
         state.dial_rows.iter().map(|r| r.len()).sum()
     };
@@ -150,54 +150,53 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
         let delta_time = last_update.elapsed().as_secs_f32();
 
-        if let Ok(mut state) = state.lock() {
-            let mut alarms = Vec::new();
+        let mut state = state.lock().unwrap();
 
-            for row in state.dial_rows.iter_mut() {
-                for dial in row.iter_mut() {
-                    if let Some(alarm) = dial.update(delta_time) {
-                        alarms.push(alarm);
-                        dial.play_alarm(&audio);
-                    }
+        // We need an extra vec here so that we can mutably borrow both `state.dial_rows` and
+        // `
+        let mut alarms = Vec::new();
+
+        for row in state.dial_rows.iter_mut() {
+            for dial in row.iter_mut() {
+                if let Some(alarm) = dial.update(delta_time, &audio) {
+                    alarms.push(alarm);
                 }
             }
+        }
+        state.queued_alarms.extend(alarms);
 
-            state.queued_alarms.extend(alarms);
+        let input_axes = state.input_axes;
+        state.ball.update(input_axes, delta_time);
 
-            let input_axes = state.input_axes;
+        if let Some(key) = state.pressed_key {
+            if let Some(alarm) = state.queued_alarms.pop_front() {
+                let millis = alarm.time.elapsed().as_millis() as u32;
 
-            state.ball.update(input_axes, delta_time);
+                let reaction = DialReaction::new(
+                    alarm.col_id,
+                    millis,
+                    alarm.correct_key == key,
+                    key,
+                    state.ball.current_rms_error(),
+                );
 
-            if let Some(key) = state.pressed_key {
-                if let Some(alarm) = state.queued_alarms.pop_front() {
-                    let millis = alarm.time.elapsed().as_millis() as u32;
+                state.dial_rows[alarm.row_id][alarm.col_id].reset();
+                audio.stop(alarm.id);
 
-                    let reaction = DialReaction::new(
-                        alarm.dial_id,
-                        millis,
-                        alarm.correct_key == key,
-                        key,
-                        state.ball.current_rms_error(),
+                state.session_output.add_reaction(reaction);
+
+                state.num_alarms_done += 1;
+
+                if state.num_alarms_done == total_num_alarms {
+                    state.session_output.write_to_file();
+                    log::info!(
+                        "wrote session output to file: {}",
+                        state.session_output.output_path
                     );
-
-                    state.dial_rows[alarm.row_id][alarm.dial_id].reset();
-                    audio.stop(alarm.get_id());
-
-                    state.session_output.add_reaction(reaction);
-
-                    state.num_alarms_done += 1;
-
-                    if state.num_alarms_done == total_num_alarms {
-                        state.session_output.write_to_file();
-                        log::info!(
-                            "wrote session output to file: {}",
-                            state.session_output.output_path
-                        );
-                    }
                 }
-
-                state.pressed_key = None;
             }
+
+            state.pressed_key = None;
         }
 
         last_update = Instant::now();

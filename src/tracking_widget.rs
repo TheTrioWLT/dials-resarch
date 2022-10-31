@@ -3,6 +3,7 @@ use eframe::{
     emath::{Pos2, Vec2},
     epaint::{CircleShape, Color32},
 };
+use derive_new::new;
 
 const FRAME_BORDER_WIDTH: f32 = 1.0;
 const FRAME_BORDER_COLOR: Color32 = Color32::WHITE;
@@ -19,15 +20,12 @@ const BALL_RADIUS: f32 = 0.03;
 
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
+#[derive(new)]
 pub struct TrackingWidget {
     ball_pos: Pos2,
 }
 
 impl TrackingWidget {
-    pub fn new(ball_pos: Pos2) -> Self {
-        Self { ball_pos }
-    }
-
     pub fn show(self, ui: &mut egui::Ui) -> egui::Response {
         let height_size = FRAME_MAX_HEIGHT_PERCENT * ui.available_height();
         let width_size = FRAME_MAX_WIDTH_PERCENT * ui.available_width();
