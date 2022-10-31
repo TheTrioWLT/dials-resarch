@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::{
     collections::{HashMap, VecDeque},
     sync::Mutex,
@@ -18,7 +17,6 @@ use crate::{
     },
     output::SessionOutput,
     tracking_widget::TrackingWidget,
-    AudioManager,
 };
 
 pub struct AppState {
@@ -32,11 +30,16 @@ pub struct AppState {
     pub last_keys: HashMap<Key, bool>,
     pub session_output: SessionOutput,
     pub num_alarms_done: usize,
-    pub audio_manager: Option<Arc<AudioManager>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
         Self {
             dial_rows: Vec::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
@@ -48,7 +51,6 @@ impl AppState {
             last_keys: HashMap::new(),
             session_output: SessionOutput::new(String::new()),
             num_alarms_done: 0,
-            audio_manager: None,
         }
     }
 }
