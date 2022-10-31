@@ -148,7 +148,7 @@ fn model(state: &Mutex<AppState>) {
     let mut last_update = Instant::now();
 
     for (_id, gamepad) in gilrs.gamepads() {
-        println!("{} is {:?} ", gamepad.name(), gamepad.power_info());
+        log::info!("Joystick {}: {:?}", gamepad.name(), gamepad.power_info());
     }
 
     let mut joystick_input_axes = Vec2::default();
