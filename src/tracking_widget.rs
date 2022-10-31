@@ -1,9 +1,9 @@
+use derive_new::new;
 use eframe::{
     egui,
     emath::{Pos2, Vec2},
     epaint::{CircleShape, Color32},
 };
-use derive_new::new;
 
 const FRAME_BORDER_WIDTH: f32 = 1.0;
 const FRAME_BORDER_COLOR: Color32 = Color32::WHITE;
