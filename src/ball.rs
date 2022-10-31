@@ -11,9 +11,9 @@ const BALL_RADIUS: f32 = 0.03;
 const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 
 //
-const BALL_SLOW_VELOCITY: f32 = 0.75;
-const BALL_MEDIUM_VELOCITY: f32 = 1.0;
-const BALL_FAST_VELOCITY: f32 = 1.25;
+const BALL_SLOW_VELOCITY: f32 = 0.30;
+const BALL_MEDIUM_VELOCITY: f32 = 0.60;
+const BALL_FAST_VELOCITY: f32 = 1.20;
 
 const BALL_NUDGE_RATE: f32 = 1.2;
 

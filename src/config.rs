@@ -6,6 +6,8 @@ pub struct Config {
     /// Where the output data gets stored to once the experiment is done
     pub output_data_path: Option<String>,
 
+    pub input_mode: InputMode,
+
     pub ball: Ball,
 
     #[serde(rename = "row")]
@@ -65,6 +67,8 @@ impl Default for Config {
                 random_direction_change_time_max: 8.0,
                 velocity_meter: BallVelocity::Slow,
             },
+            output_data_path: None,
+            input_mode: InputMode::default(),
             dial_rows: vec![
                 DialRow {
                     dials: (1u32..=3)
@@ -94,8 +98,15 @@ impl Default for Config {
                     clear_key: char::from_digit(i, 10).unwrap(),
                 })
                 .collect(),
-
-            output_data_path: None,
         }
     }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, Clone, Copy)]
+pub enum InputMode {
+    #[serde(rename = "joystick")]
+    Joystick,
+    #[default]
+    #[serde(rename = "keyboard")]
+    Keyboard,
 }

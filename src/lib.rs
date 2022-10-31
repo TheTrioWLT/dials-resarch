@@ -1,6 +1,8 @@
 use anyhow::Result;
+
 use audio::AudioManager;
 use dial::{Dial, DialRange};
+use eframe::epaint::Vec2;
 use lazy_static::lazy_static;
 use output::SessionOutput;
 use std::{
@@ -14,6 +16,7 @@ use app::{AppState, DialsApp};
 
 use crate::error_popup::ErrorPopup;
 use crate::{ball::Ball, dial::DialReaction};
+use gilrs::{Event, Gilrs};
 
 mod app;
 mod ball;
@@ -113,6 +116,7 @@ pub fn run() -> Result<()> {
     {
         let mut state = STATE.lock().unwrap();
 
+        state.input_mode = config.input_mode;
         state.dial_rows = dial_rows;
         state.ball = Ball::new(
             config.ball.random_direction_change_time_min,
@@ -139,8 +143,15 @@ pub fn run() -> Result<()> {
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
 fn model(state: &Mutex<AppState>) {
+    let mut gilrs = Gilrs::new().unwrap();
+
     let mut last_update = Instant::now();
 
+    for (_id, gamepad) in gilrs.gamepads() {
+        log::info!("Joystick {}: {:?}", gamepad.name(), gamepad.power_info());
+    }
+
+    let mut joystick_input_axes = Vec2::default();
     let total_num_alarms = {
         let state = state.lock().expect("This shouldn't fail silently");
 
@@ -163,9 +174,26 @@ fn model(state: &Mutex<AppState>) {
                 }
             }
 
+            while let Some(Event { event, .. }) = gilrs.next_event() {
+                if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
+                    match axis {
+                        gilrs::ev::Axis::LeftStickX => {
+                            joystick_input_axes[1] = -amount;
+                        }
+                        gilrs::ev::Axis::LeftStickY => {
+                            joystick_input_axes[0] = -amount;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
             state.queued_alarms.extend(alarms);
 
-            let input_axes = state.input_axes;
+            let input_axes = match state.input_mode {
+                config::InputMode::Joystick => joystick_input_axes,
+                config::InputMode::Keyboard => state.input_axes,
+            };
 
             state.ball.update(input_axes, delta_time);
 
