@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use output::SessionOutput;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::Mutex,
     thread,
     time::{Duration, Instant},
 };
@@ -71,7 +71,7 @@ pub fn run() -> Result<()> {
 
     validate_config(&mut config);
 
-    let audio = Arc::new(AudioManager::new()?);
+    let audio = AudioManager::new()?;
 
     // Maps alarm names to alarm structs
     let alarms: HashMap<&str, &config::Alarm> =
@@ -98,14 +98,13 @@ pub fn run() -> Result<()> {
             row.dials
                 .iter()
                 .enumerate()
-                .map(|(id, dial)| {
+                .map(|(col_id, dial)| {
                     let alarm = alarms[dial.alarm.as_str()];
                     Dial::new(
                         row_id,
-                        id,
+                        col_id,
                         DialRange::new(dial.start, dial.end),
                         alarm,
-                        Arc::clone(&audio),
                         dial.alarm_time,
                     )
                 })
@@ -129,10 +128,9 @@ pub fn run() -> Result<()> {
                 .clone()
                 .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
         );
-        state.audio_manager = Some(audio);
     }
 
-    thread::spawn(move || model(&STATE));
+    thread::spawn(move || model(&STATE, audio));
 
     eframe::run_native(
         "Dials App",
@@ -142,7 +140,7 @@ pub fn run() -> Result<()> {
 }
 
 /// Our program's actual internal model, as opposted to the "view" which is our UI
-fn model(state: &Mutex<AppState>) {
+fn model(state: &Mutex<AppState>, audio: AudioManager) {
     let mut gilrs = Gilrs::new().unwrap();
 
     let mut last_update = Instant::now();
@@ -163,70 +161,72 @@ fn model(state: &Mutex<AppState>) {
 
         let delta_time = last_update.elapsed().as_secs_f32();
 
-        if let Ok(mut state) = state.lock() {
-            let mut alarms = Vec::new();
+        let mut state = state.lock().unwrap();
 
-            for row in state.dial_rows.iter_mut() {
-                for dial in row.iter_mut() {
-                    if let Some(alarm) = dial.update(delta_time, &audio) {
-                        alarms.push(alarm);
-                    }
+        // We need an extra vec here so that we can mutably borrow both `state.dial_rows` and
+        // `state.queued_alarms` at the same time
+        let mut alarms = Vec::new();
+
+        for row in state.dial_rows.iter_mut() {
+            for dial in row.iter_mut() {
+                if let Some(alarm) = dial.update(delta_time, &audio) {
+                    alarms.push(alarm);
                 }
             }
+        }
 
-            while let Some(Event { event, .. }) = gilrs.next_event() {
-                if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
-                    match axis {
-                        gilrs::ev::Axis::LeftStickX => {
-                            joystick_input_axes[1] = -amount;
-                        }
-                        gilrs::ev::Axis::LeftStickY => {
-                            joystick_input_axes[0] = -amount;
-                        }
-                        _ => {}
+        state.queued_alarms.extend(alarms);
+
+        while let Some(Event { event, .. }) = gilrs.next_event() {
+            if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
+                match axis {
+                    gilrs::ev::Axis::LeftStickX => {
+                        joystick_input_axes[1] = -amount;
                     }
+                    gilrs::ev::Axis::LeftStickY => {
+                        joystick_input_axes[0] = -amount;
+                    }
+                    _ => {}
                 }
             }
+        }
 
-            state.queued_alarms.extend(alarms);
+        let input_axes = match state.input_mode {
+            config::InputMode::Joystick => joystick_input_axes,
+            config::InputMode::Keyboard => state.input_axes,
+        };
 
-            let input_axes = match state.input_mode {
-                config::InputMode::Joystick => joystick_input_axes,
-                config::InputMode::Keyboard => state.input_axes,
-            };
+        state.ball.update(input_axes, delta_time);
 
-            state.ball.update(input_axes, delta_time);
+        if let Some(key) = state.pressed_key {
+            if let Some(alarm) = state.queued_alarms.pop_front() {
+                let millis = alarm.time.elapsed().as_millis() as u32;
 
-            if let Some(key) = state.pressed_key {
-                if let Some(alarm) = state.queued_alarms.pop_front() {
-                    let millis = alarm.time.elapsed().as_millis() as u32;
+                let reaction = DialReaction::new(
+                    alarm.id,
+                    millis,
+                    alarm.correct_key == key,
+                    key,
+                    state.ball.current_rms_error(),
+                );
 
-                    let reaction = DialReaction::new(
-                        alarm.dial_id,
-                        millis,
-                        alarm.correct_key == key,
-                        key,
-                        state.ball.current_rms_error(),
+                state.dial_rows[alarm.row_id][alarm.col_id].reset();
+                audio.stop(alarm.id);
+
+                state.session_output.add_reaction(reaction);
+
+                state.num_alarms_done += 1;
+
+                if state.num_alarms_done == total_num_alarms {
+                    state.session_output.write_to_file();
+                    log::info!(
+                        "wrote session output to file: {}",
+                        state.session_output.output_path
                     );
-
-                    state.dial_rows[alarm.row_id][alarm.dial_id].reset();
-                    state.audio_manager.as_ref().unwrap().stop(alarm.get_id());
-
-                    state.session_output.add_reaction(reaction);
-
-                    state.num_alarms_done += 1;
-
-                    if state.num_alarms_done == total_num_alarms {
-                        state.session_output.write_to_file();
-                        log::info!(
-                            "wrote session output to file: {}",
-                            state.session_output.output_path
-                        );
-                    }
                 }
-
-                state.pressed_key = None;
             }
+
+            state.pressed_key = None;
         }
 
         last_update = Instant::now();
