@@ -102,7 +102,6 @@ impl Default for Config {
     }
 }
 
-
 #[derive(Debug, Deserialize, Serialize, Default, Clone, Copy)]
 pub enum InputMode {
     #[serde(rename = "joystick")]
