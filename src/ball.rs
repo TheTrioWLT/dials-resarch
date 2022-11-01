@@ -18,14 +18,13 @@ const BALL_FAST_VELOCITY: f32 = 1.20;
 const BALL_NUDGE_RATE: f32 = 1.2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum BallVelocity {
-    #[serde(rename = "slow")]
     Slow,
-    #[serde(rename = "medium")]
     Medium,
-    #[serde(rename = "fast")]
     Fast,
 }
+
 pub struct Ball {
     pos: Pos2,
     velocity: Vec2,
