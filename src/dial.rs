@@ -81,6 +81,7 @@ pub struct Dial {
     in_range: DialRange,
     key: char,
     alarm_path: String,
+    alarm_name: String,
     alarm_fired: bool,
     random_path: VecDeque<PathSegment>,
     segment_time: f32,
@@ -121,6 +122,7 @@ impl Dial {
             in_range,
             key: alarm.clear_key,
             alarm_path: alarm.audio_path.clone(),
+            alarm_name: alarm.name.clone(),
             alarm_fired: false,
             random_path,
             segment_time: 0.0,
@@ -183,6 +185,10 @@ impl Dial {
 
     pub fn value(&self) -> f32 {
         self.value
+    }
+
+    pub fn alarm_name(&self) -> &String {
+        &self.alarm_name
     }
 
     pub fn in_range(&self) -> DialRange {

@@ -215,16 +215,18 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
             if let Some(alarm) = state.queued_alarms.pop_front() {
                 let millis = alarm.time.elapsed().as_millis() as u32;
 
+                let current_rms_error = state.ball.current_rms_error();
+                let dial = &mut state.dial_rows[alarm.row_id as usize][alarm.col_id as usize];
+
                 let reaction = DialReaction::new(
-                    alarm.row_id,
-                    alarm.col_id,
+                    dial.alarm_name().clone(),
                     millis,
                     alarm.correct_key == key,
                     key,
-                    state.ball.current_rms_error(),
+                    current_rms_error,
                 );
 
-                state.dial_rows[alarm.row_id as usize][alarm.col_id as usize].reset();
+                dial.reset();
                 audio.stop(alarm.id);
 
                 state.session_output.add_reaction(reaction);

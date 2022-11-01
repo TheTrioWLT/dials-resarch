@@ -1,7 +1,7 @@
 use derive_new::new;
 use std::io::Write;
 
-const CSV_HEADERS: &str = "dial_row, dial_col, rms_error, response_time, correct_key, key";
+const CSV_HEADERS: &str = "alarm, rms_error, response_time, correct_key, key";
 
 pub struct SessionOutput {
     pub dial_reactions: Vec<DialReaction>,
@@ -9,10 +9,9 @@ pub struct SessionOutput {
 }
 
 /// Information about a user's response to an instance of an alarm being fired
-#[derive(Debug, Copy, Clone, new)]
+#[derive(Debug, Clone, new)]
 pub struct DialReaction {
-    pub dial_row: u32,
-    pub dial_col: u32,
+    pub alarm_name: String,
     pub millis: u32,
     pub correct_key: bool,
     pub key: char,
@@ -44,9 +43,8 @@ impl SessionOutput {
         for reaction in &self.dial_reactions {
             writeln!(
                 file,
-                "{}, {}, {}, {}, {}, {}",
-                reaction.dial_row,
-                reaction.dial_col,
+                "{}, {}, {}, {}, {}",
+                reaction.alarm_name,
                 reaction.rms_error,
                 reaction.millis,
                 reaction.correct_key,
@@ -54,9 +52,8 @@ impl SessionOutput {
             )
             .unwrap();
             println!(
-                "{}, {}, {}, {}, {}, {}",
-                reaction.dial_row,
-                reaction.dial_col,
+                "{}, {}, {}, {}, {}",
+                reaction.alarm_name,
                 reaction.rms_error,
                 reaction.millis,
                 reaction.correct_key,
