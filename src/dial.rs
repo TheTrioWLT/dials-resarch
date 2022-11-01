@@ -109,8 +109,8 @@ impl Dial {
         alarm: &Alarm,
         time_to_drift: f32,
     ) -> Self {
-        assert!(row_id >= MAX_DIAL_GRID_SIZE);
-        assert!(col_id >= MAX_DIAL_GRID_SIZE);
+        assert!(row_id < MAX_DIAL_GRID_SIZE);
+        assert!(col_id < MAX_DIAL_GRID_SIZE);
 
         let random_path = generate_random_dial_path(
             &in_range,
