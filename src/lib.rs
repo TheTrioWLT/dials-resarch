@@ -90,14 +90,11 @@ pub fn run() -> Result<()> {
         }
     }
 
-    let dial_rows: Vec<_> = config
-        .dial_rows
-        .iter()
-        .enumerate()
+    let dial_rows: Vec<_> = (0..)
+        .zip(config.dial_rows.iter())
         .map(|(row_id, row)| {
-            row.dials
-                .iter()
-                .enumerate()
+            (0..)
+                .zip(row.dials.iter())
                 .map(|(col_id, dial)| {
                     let alarm = alarms[dial.alarm.as_str()];
                     Dial::new(
@@ -139,7 +136,7 @@ pub fn run() -> Result<()> {
     );
 }
 
-/// Our program's actual internal model, as opposted to the "view" which is our UI
+/// Our program's actual internal model, as opposed to the "view" which is our UI
 fn model(state: &Mutex<AppState>, audio: AudioManager) {
     let mut gilrs = Gilrs::new().unwrap();
 
@@ -210,7 +207,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                     state.ball.current_rms_error(),
                 );
 
-                state.dial_rows[alarm.row_id][alarm.col_id].reset();
+                state.dial_rows[alarm.row_id as usize][alarm.col_id as usize].reset();
                 audio.stop(alarm.id);
 
                 state.session_output.add_reaction(reaction);

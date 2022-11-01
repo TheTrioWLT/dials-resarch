@@ -8,9 +8,6 @@ const MIN_PATH_SEGMENTS: usize = 4;
 const AFTER_RESET_PATH_TIME: usize = 3600; // In seconds
 const AFTER_RESET_SECONDS_PER_SEGMENT: f32 = 2.0;
 
-/// The largest number of dials in a row or column
-const MAX_DIAL_GRID_SIZE: usize = 2 << 20;
-
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct DialRange {
     pub start: f32,
@@ -69,8 +66,8 @@ impl DialRange {
 /// Data associated with an alarm that has drifted out of range
 #[derive(Debug, Copy, Clone)]
 pub struct TriggeredAlarm {
-    pub row_id: usize,
-    pub col_id: usize,
+    pub row_id: u32,
+    pub col_id: u32,
     pub time: Instant,
     pub correct_key: char,
     pub id: DialId,
@@ -79,8 +76,8 @@ pub struct TriggeredAlarm {
 #[derive(Debug, Clone)]
 pub struct Dial {
     value: f32,
-    row_id: usize,
-    col_id: usize,
+    row_id: u32,
+    col_id: u32,
     in_range: DialRange,
     key: char,
     alarm_path: String,
@@ -103,15 +100,12 @@ impl std::fmt::Display for DialId {
 
 impl Dial {
     pub fn new(
-        row_id: usize,
-        col_id: usize,
+        row_id: u32,
+        col_id: u32,
         in_range: DialRange,
         alarm: &Alarm,
         time_to_drift: f32,
     ) -> Self {
-        assert!(row_id < MAX_DIAL_GRID_SIZE);
-        assert!(col_id < MAX_DIAL_GRID_SIZE);
-
         let random_path = generate_random_dial_path(
             &in_range,
             time_to_drift,
@@ -198,7 +192,7 @@ impl Dial {
     /// A unique id for this dial
     fn dial_id(&self) -> DialId {
         // `row_id` and `col_id` are both less than `MAX_DIAL_GRID_SIZE`, therefore shifting the
-        // row by 32 bits is guarnteed to give a perfect hash without collisions
+        // row by 32 bits is guaranteed to give a perfect hash without collisions
         DialId((self.row_id as u64) << 32 | self.col_id as u64)
     }
 }
