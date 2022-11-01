@@ -200,7 +200,8 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 let millis = alarm.time.elapsed().as_millis() as u32;
 
                 let reaction = DialReaction::new(
-                    alarm.id,
+                    alarm.row_id,
+                    alarm.col_id,
                     millis,
                     alarm.correct_key == key,
                     key,

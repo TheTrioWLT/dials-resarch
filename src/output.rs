@@ -1,19 +1,18 @@
 use derive_new::new;
 use std::io::Write;
 
-use crate::dial::DialId;
-
-const CSV_HEADERS: &str = "alarm, rms_error, response_time, correct_key, key";
+const CSV_HEADERS: &str = "dial_row, dial_col, rms_error, response_time, correct_key, key";
 
 pub struct SessionOutput {
     pub dial_reactions: Vec<DialReaction>,
     pub output_path: String,
 }
 
-/// Information about a user's responce to an instance of an alarm being fired
+/// Information about a user's response to an instance of an alarm being fired
 #[derive(Debug, Copy, Clone, new)]
 pub struct DialReaction {
-    pub id: DialId,
+    pub dial_row: u32,
+    pub dial_col: u32,
     pub millis: u32,
     pub correct_key: bool,
     pub key: char,
@@ -40,12 +39,14 @@ impl SessionOutput {
             .unwrap();
 
         writeln!(file, "{CSV_HEADERS}").unwrap();
+        println!("{CSV_HEADERS}");
 
         for reaction in &self.dial_reactions {
             writeln!(
                 file,
-                "{}, {}, {}, {}, {}",
-                reaction.id,
+                "{}, {}, {}, {}, {}, {}",
+                reaction.dial_row,
+                reaction.dial_col,
                 reaction.rms_error,
                 reaction.millis,
                 reaction.correct_key,
@@ -53,8 +54,9 @@ impl SessionOutput {
             )
             .unwrap();
             println!(
-                "{}, {}, {}, {}, {}",
-                reaction.id,
+                "{}, {}, {}, {}, {}, {}",
+                reaction.dial_row,
+                reaction.dial_col,
                 reaction.rms_error,
                 reaction.millis,
                 reaction.correct_key,
