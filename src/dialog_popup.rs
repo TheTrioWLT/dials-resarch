@@ -1,13 +1,13 @@
 use eframe::egui::Vec2;
 use eframe::{egui, NativeOptions};
 
-pub struct ErrorPopup {
+pub struct DialogPopup {
     title: String,
     heading: String,
     message: String,
 }
 
-impl ErrorPopup {
+impl DialogPopup {
     pub fn new(
         title: impl Into<String>,
         heading: impl Into<String>,
@@ -31,19 +31,19 @@ impl ErrorPopup {
         eframe::run_native(
             &title,
             native_options,
-            Box::new(move |cc| Box::new(ErrorPopupWindow::new(self, cc))),
+            Box::new(move |cc| Box::new(DialogPopupWindow::new(self, cc))),
         );
     }
 }
 
 #[derive(Default)]
-struct ErrorPopupWindow {
+struct DialogPopupWindow {
     heading: String,
     message: String,
 }
 
-impl ErrorPopupWindow {
-    fn new(error_data: ErrorPopup, cc: &eframe::CreationContext<'_>) -> Self {
+impl DialogPopupWindow {
+    fn new(error_data: DialogPopup, cc: &eframe::CreationContext<'_>) -> Self {
         Self::style(cc);
 
         Self {
@@ -59,7 +59,7 @@ impl ErrorPopupWindow {
     }
 }
 
-impl eframe::App for ErrorPopupWindow {
+impl eframe::App for DialogPopupWindow {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered(|ui| {
