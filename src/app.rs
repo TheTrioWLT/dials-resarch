@@ -21,6 +21,9 @@ use crate::{
     tracking_widget::TrackingWidget,
 };
 
+// We don't really need extra indirection by Box-ing RunningState, we aren't moving a bunch
+// of AppState's around all the time
+#[allow(clippy::large_enum_variant)]
 pub enum AppState {
     Running(RunningState),
     Done,
