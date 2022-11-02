@@ -1,24 +1,32 @@
 use crate::config::Alarm;
+use derive_new::new;
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, time::Instant};
 
+/// The value required to have the needle point to the very end of the dial
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
+/// The maximum number of segments in a random path that is traversed by the dial in its wandering
 const MAX_PATH_SEGMENTS: usize = 8;
+/// The minimum number of segments in a random path that is traversed by the dial in its wandering
 const MIN_PATH_SEGMENTS: usize = 4;
-const AFTER_RESET_PATH_TIME: usize = 3600; // In seconds
+/// The number of seconds that a path for the dial should be generated for, for after the dial is reset
+const AFTER_RESET_PATH_TIME: usize = 3600;
+/// The number of seconds per path segment for after the dial has been reset. This determines the number
+/// of segments
 const AFTER_RESET_SECONDS_PER_SEGMENT: f32 = 2.0;
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+/// A "range" which a dial can be inside or out of. This is used to keep track of if the dial is
+/// "in range" so that we know when to sound an alarm.
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, new)]
 pub struct DialRange {
+    /// The "start" of the range. This should always be *less* than what the value should be
     pub start: f32,
+    /// The "end" of the range. This should always be *greater* than what the value should be
     pub end: f32,
 }
 
 impl DialRange {
-    pub fn new(start: f32, end: f32) -> Self {
-        Self { start, end }
-    }
-
+    /// Returns true if the value is contained within this range "inclusively"
     pub fn contains(&self, value: f32) -> bool {
         value <= self.end && value >= self.start
     }
@@ -42,6 +50,7 @@ impl DialRange {
         }
     }
 
+    /// Returns a random value that is inside of this range, with no other constraints
     pub fn random_in(&self) -> f32 {
         self.start + (self.end - self.start) * rand::random::<f32>()
     }
@@ -66,25 +75,42 @@ impl DialRange {
 /// Data associated with an alarm that has drifted out of range
 #[derive(Debug, Copy, Clone)]
 pub struct TriggeredAlarm {
+    // The row of the dial that caused this alarm
     pub row_id: u32,
+    // The col of the dial that caused this alarm
     pub col_id: u32,
+    /// The time at which this alarm was triggered
     pub time: Instant,
+    /// The correct key with which to stop this alarm
     pub correct_key: char,
+    /// The DialId of the dial that caused this alarm
     pub id: DialId,
 }
 
+/// Represents a dial inside of our application "model"
 #[derive(Debug, Clone)]
 pub struct Dial {
+    // The current value of the dial, which is where the needle is pointing
     value: f32,
+    // The row this dial is located in
     row_id: u32,
+    // The column this dial is located at
     col_id: u32,
+    // The "in-range" for this dial: where it is supposed to be, and if it exits, the alarm sounds
     in_range: DialRange,
+    // The key that corresponds to deactivating this dial's alarm
     key: char,
+    // The path to the dial's alarm's audio file
     alarm_path: String,
+    // The name of the alarm that corresponds to this dial
     alarm_name: String,
+    // If the alarm has already fired or not
     alarm_fired: bool,
+    // This dial's random path that it needs to traverse in order to drift up and down
     random_path: VecDeque<PathSegment>,
+    // The current time into the current path segment
     segment_time: f32,
+    // The current direction of travel in the path segment.
     travel_direction: f32,
 }
 
@@ -100,6 +126,8 @@ impl std::fmt::Display for DialId {
 }
 
 impl Dial {
+    /// Creates a new Dial with the provided row, column, in-range, alarm values, and the time_to_drift
+    /// which represents how long until the dial should go out of its in-range
     pub fn new(
         row_id: u32,
         col_id: u32,
@@ -130,6 +158,8 @@ impl Dial {
         }
     }
 
+    /// Resets the dial so that it can drift until the trial is over, but never goes out of
+    /// its in-range again
     pub fn reset(&mut self) {
         let path_segments =
             (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
@@ -183,21 +213,24 @@ impl Dial {
         }
     }
 
+    /// The value of the dial, where it is currently pointing
     pub fn value(&self) -> f32 {
         self.value
     }
 
+    /// The name of the alarm that this dial sounds when it is out of range
     pub fn alarm_name(&self) -> &String {
         &self.alarm_name
     }
 
+    /// The in-range for this dial
     pub fn in_range(&self) -> DialRange {
         self.in_range
     }
 
     /// A unique id for this dial
     fn dial_id(&self) -> DialId {
-        // `row_id` and `col_id` are both less than `MAX_DIAL_GRID_SIZE`, therefore shifting the
+        // `row_id` and `col_id` are both u32's, therefore shifting the
         // row by 32 bits is guaranteed to give a perfect hash without collisions
         DialId((self.row_id as u64) << 32 | self.col_id as u64)
     }
@@ -215,10 +248,14 @@ impl From<&Dial> for TriggeredAlarm {
     }
 }
 
+/// A single segment in a Dial's random path that it traverses over time
 #[derive(Debug, Clone, Copy)]
 struct PathSegment {
+    /// The start position of the dial
     start: f32,
+    /// The end position of the dial
     end: f32,
+    /// The time that this path segment should take
     duration: f32,
 }
 

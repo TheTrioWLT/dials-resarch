@@ -164,7 +164,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
     let mut joystick_input_axes = Vec2::default();
     let total_num_alarms = {
-        let state = state.lock().expect("This shouldn't fail silently");
+        let state = state.lock().unwrap();
 
         state.dial_rows.iter().map(|r| r.len()).sum()
     };
