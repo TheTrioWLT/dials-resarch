@@ -199,6 +199,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 // `state.queued_alarms` at the same time
                 let mut alarms = Vec::new();
 
+                // Update all dials
                 for row in state.dial_rows.iter_mut() {
                     for dial in row.iter_mut() {
                         if let Some(alarm) = dial.update(delta_time, &audio) {
@@ -209,6 +210,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                 state.queued_alarms.extend(alarms);
 
+                // Get joystick input
                 while let Some(Event { event, .. }) = gilrs.next_event() {
                     if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
                         match axis {
@@ -230,6 +232,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                 state.ball.update(input_axes, delta_time);
 
+                // Process key presses/alarm reactions
                 if let Some(key) = state.pressed_key {
                     if let Some(alarm) = state.queued_alarms.pop_front() {
                         let millis = alarm.time.elapsed().as_millis() as u32;
