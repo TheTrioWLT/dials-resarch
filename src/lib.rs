@@ -1,11 +1,14 @@
 //! Our module that implements the dials research app.`
 
+extern crate core;
+
 use anyhow::{bail, Result};
 use audio::AudioManager;
 use dial::{Dial, DialRange};
 use eframe::epaint::Vec2;
 use lazy_static::lazy_static;
 use output::SessionOutput;
+use std::ops::DerefMut;
 use std::{
     collections::HashMap,
     sync::Mutex,
@@ -36,20 +39,13 @@ pub const DEFAULT_OUTPUT_PATH: &str = "./trial.csv";
 
 lazy_static! {
     /// The global state of the application
-    static ref STATE: Mutex<AppState> = Mutex::new(AppState::new());
+    static ref STATE: Mutex<AppState> = Mutex::new(AppState::default());
 }
 
 /// Creates a new [`eframe`] window, and spawns worker threads to run the dials research application
 ///
 /// This can fail if the configuration file is invalid, audio files cannot be loaded, or audio playback issues.
 pub fn run() -> Result<()> {
-    let options = eframe::NativeOptions {
-        transparent: true,
-        vsync: true,
-        maximized: true,
-        ..eframe::NativeOptions::default()
-    };
-
     // Parse or generate the configuration file
     let mut config = if let Ok(toml) = std::fs::read_to_string(DEFAULT_CONFIG_PATH) {
         match toml::from_str(&toml) {
@@ -121,25 +117,37 @@ pub fn run() -> Result<()> {
     {
         let mut state = STATE.lock().unwrap();
 
-        // Assign all of the values that we have created from the configuration file
-        // because these had to come with defaults since it is static
-        state.input_mode = config.input_mode;
-        state.dial_rows = dial_rows;
-        state.ball = Ball::new(
-            config.ball.random_direction_change_time_min,
-            config.ball.random_direction_change_time_max,
-            config.ball.velocity_meter,
-        );
-        state.session_output = SessionOutput::new(
-            config
-                .output_data_path
-                .clone()
-                .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
-        );
+        if let AppState::Running(state) = state.deref_mut() {
+            // Assign all of the values that we have created from the configuration file
+            // because these had to come with defaults since it is static
+            state.input_mode = config.input_mode;
+            state.dial_rows = dial_rows;
+            state.ball = Ball::new(
+                config.ball.random_direction_change_time_min,
+                config.ball.random_direction_change_time_max,
+                config.ball.velocity_meter,
+            );
+            state.session_output = SessionOutput::new(
+                config
+                    .output_data_path
+                    .clone()
+                    .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
+            );
+        } else {
+            panic!();
+        }
     }
 
     // Our "model" runs in a separate thread and shares state
     thread::spawn(move || model(&STATE, audio));
+
+    let options = eframe::NativeOptions {
+        transparent: true,
+        vsync: true,
+        maximized: true,
+        initial_window_size: Some(Vec2::new(1920.0 / 2.0, 1080.0 / 2.0)),
+        ..eframe::NativeOptions::default()
+    };
 
     // Actually creates the eframe window for our application
     eframe::run_native(
@@ -158,15 +166,25 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     let mut last_update = Instant::now();
 
     for (_id, gamepad) in gilrs.gamepads() {
-        log::info!("Joystick {}: {:?}", gamepad.name(), gamepad.power_info());
+        log::info!(
+            "Joystick {} detected: {:?}",
+            gamepad.name(),
+            gamepad.power_info()
+        );
     }
 
     let mut joystick_input_axes = Vec2::default();
     let total_num_alarms = {
-        let state = state.lock().unwrap();
-
-        state.dial_rows.iter().map(|r| r.len()).sum()
+        let mut state = state.lock().unwrap();
+        if let AppState::Running(state) = state.deref_mut() {
+            state.dial_rows.iter().map(|r| r.len()).sum()
+        } else {
+            panic!();
+        }
     };
+
+    // This allows us to request state transitions inside of the loop
+    let mut new_appstate = None;
 
     loop {
         thread::sleep(Duration::from_millis(2));
@@ -175,73 +193,86 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
         let mut state = state.lock().unwrap();
 
-        // We need an extra vec here so that we can mutably borrow both `state.dial_rows` and
-        // `state.queued_alarms` at the same time
-        let mut alarms = Vec::new();
+        match state.deref_mut() {
+            AppState::Running(state) => {
+                // We need an extra vec here so that we can mutably borrow both `state.dial_rows` and
+                // `state.queued_alarms` at the same time
+                let mut alarms = Vec::new();
 
-        for row in state.dial_rows.iter_mut() {
-            for dial in row.iter_mut() {
-                if let Some(alarm) = dial.update(delta_time, &audio) {
-                    alarms.push(alarm);
+                for row in state.dial_rows.iter_mut() {
+                    for dial in row.iter_mut() {
+                        if let Some(alarm) = dial.update(delta_time, &audio) {
+                            alarms.push(alarm);
+                        }
+                    }
+                }
+
+                state.queued_alarms.extend(alarms);
+
+                while let Some(Event { event, .. }) = gilrs.next_event() {
+                    if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
+                        match axis {
+                            gilrs::ev::Axis::LeftStickX => {
+                                joystick_input_axes[1] = -amount;
+                            }
+                            gilrs::ev::Axis::LeftStickY => {
+                                joystick_input_axes[0] = -amount;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
+                let input_axes = match state.input_mode {
+                    config::InputMode::Joystick => joystick_input_axes,
+                    config::InputMode::Keyboard => state.input_axes,
+                };
+
+                state.ball.update(input_axes, delta_time);
+
+                if let Some(key) = state.pressed_key {
+                    if let Some(alarm) = state.queued_alarms.pop_front() {
+                        let millis = alarm.time.elapsed().as_millis() as u32;
+
+                        let current_rms_error = state.ball.current_rms_error();
+                        let dial =
+                            &mut state.dial_rows[alarm.row_id as usize][alarm.col_id as usize];
+
+                        let reaction = AlarmReaction::new(
+                            dial.alarm_name().clone(),
+                            millis,
+                            alarm.correct_key == key,
+                            key,
+                            current_rms_error,
+                        );
+
+                        dial.reset();
+                        audio.stop(alarm.id);
+
+                        state.session_output.add_reaction(reaction);
+
+                        state.num_alarms_done += 1;
+
+                        if state.num_alarms_done == total_num_alarms {
+                            state.session_output.write_to_file();
+                            log::info!(
+                                "wrote session output to file: {}",
+                                state.session_output.output_path
+                            );
+
+                            new_appstate = Some(AppState::Done);
+                        }
+                    }
+
+                    state.pressed_key = None;
                 }
             }
+            AppState::Done => {}
         }
 
-        state.queued_alarms.extend(alarms);
-
-        while let Some(Event { event, .. }) = gilrs.next_event() {
-            if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
-                match axis {
-                    gilrs::ev::Axis::LeftStickX => {
-                        joystick_input_axes[1] = -amount;
-                    }
-                    gilrs::ev::Axis::LeftStickY => {
-                        joystick_input_axes[0] = -amount;
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        let input_axes = match state.input_mode {
-            config::InputMode::Joystick => joystick_input_axes,
-            config::InputMode::Keyboard => state.input_axes,
-        };
-
-        state.ball.update(input_axes, delta_time);
-
-        if let Some(key) = state.pressed_key {
-            if let Some(alarm) = state.queued_alarms.pop_front() {
-                let millis = alarm.time.elapsed().as_millis() as u32;
-
-                let current_rms_error = state.ball.current_rms_error();
-                let dial = &mut state.dial_rows[alarm.row_id as usize][alarm.col_id as usize];
-
-                let reaction = AlarmReaction::new(
-                    dial.alarm_name().clone(),
-                    millis,
-                    alarm.correct_key == key,
-                    key,
-                    current_rms_error,
-                );
-
-                dial.reset();
-                audio.stop(alarm.id);
-
-                state.session_output.add_reaction(reaction);
-
-                state.num_alarms_done += 1;
-
-                if state.num_alarms_done == total_num_alarms {
-                    state.session_output.write_to_file();
-                    log::info!(
-                        "wrote session output to file: {}",
-                        state.session_output.output_path
-                    );
-                }
-            }
-
-            state.pressed_key = None;
+        // If we have requested a state change, perform it
+        if let Some(new_state) = new_appstate.take() {
+            *state = new_state;
         }
 
         last_update = Instant::now();
