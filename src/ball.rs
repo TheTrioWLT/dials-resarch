@@ -27,6 +27,7 @@ const BALL_NUDGE_RATE: f32 = 1.2;
 /// handle.
 /// The reason for this type is to have more freedom on the velocity for future use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum BallVelocity {
     /// Slowest velocity and default by use [`BALL_SLOW_VELOCITY`]
     #[serde(rename = "slow")]
@@ -38,7 +39,7 @@ pub enum BallVelocity {
     #[serde(rename = "fast")]
     Fast,
 }
-/// Representation of the ball.
+
 pub struct Ball {
     /// Current position in the screen.
     ///
@@ -99,7 +100,6 @@ impl Ball {
     ///
     /// The center of the screen would be the (screen_width / 2, screen_height / 2) this can be
     /// translated to (0.0, 0.0).
-    ///
     pub fn update(&mut self, input_axes: Vec2, delta_time: f32) {
         let mut rng = rand::thread_rng();
 
