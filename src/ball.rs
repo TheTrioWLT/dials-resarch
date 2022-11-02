@@ -5,33 +5,62 @@ use egui::Pos2;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-// Area percentage rather than pixels
+/// Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
 
+/// Starting position which is the center of the screen.
 const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
 
-//
+/// Parameter for the slow velocity, it cannot be changed within the program.
 const BALL_SLOW_VELOCITY: f32 = 0.30;
+
+/// Parameter for the medium velocity, it cannot be changed within the program.
 const BALL_MEDIUM_VELOCITY: f32 = 0.60;
+
+/// Parameter for the fast velocity, it cannot be changed within the program.
 const BALL_FAST_VELOCITY: f32 = 1.20;
 
 const BALL_NUDGE_RATE: f32 = 1.2;
 
+/// Three types of velocity for the ball
+/// By default the one that will be used the most is Slow as is the one that makes it easy to
+/// handle.
+/// The reason for this type is to have more freedom on the velocity for future use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum BallVelocity {
+    /// Slowest velocity and default by use [`BALL_SLOW_VELOCITY`]
     #[serde(rename = "slow")]
     Slow,
+    /// Medium velocity [`BALL_MEDIUM_VELOCITY`]
     #[serde(rename = "medium")]
     Medium,
+    /// Fast velocity [`BALL_FAST_VELOCITY`]
     #[serde(rename = "fast")]
     Fast,
 }
+/// Representation of the ball.
 pub struct Ball {
+    /// Current position in the screen.
+    ///
+    /// We use a default range of -1.0 to 1.0 where 0.0 is the center of the screen.
+    /// This is later then factored to the monitor's dimension to be scale it properly.
     pos: Pos2,
+
     velocity: Vec2,
+
+    /// Keeps track of how long has the ball been running since last velocity change
     time_running: f32,
+
+    /// Given by the config file, there will be a random time where the ball is suppose to change
+    /// it's velocity. This could be any times of seconds given by a range.
+    ///
+    /// For example any time from 1 second to 7 seconds.
     velocity_change_time_at: f32,
+
+    /// The minimum value of the time range
     pub random_direction_change_time_min: f32,
+
+    /// The maximum value of the time range
     pub random_direction_change_time_max: f32,
 }
 
@@ -124,7 +153,8 @@ impl Ball {
         self.pos
     }
 }
-//Function to make calculate the new velocity
+/// Function to make calculate the new velocity.
+/// This uses geometry where it can choose any velocity within a 360 degree angle of the ball.
 fn new_vel(length: f32) -> Vec2 {
     let mut rng = rand::thread_rng();
 
