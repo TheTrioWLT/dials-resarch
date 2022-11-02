@@ -1,7 +1,5 @@
 //! Our module that implements the dials research app.`
 
-#![deny(missing_docs)]
-
 use anyhow::{bail, Result};
 use audio::AudioManager;
 use dial::{Dial, DialRange};
@@ -44,7 +42,6 @@ lazy_static! {
 /// Creates a new [`eframe`] window, and spawns worker threads to run the dials research application
 ///
 /// This can fail if the configuration file is invalid, audio files cannot be loaded, or audio playback issues.
-///
 pub fn run() -> Result<()> {
     let options = eframe::NativeOptions {
         transparent: true,
@@ -150,6 +147,8 @@ pub fn run() -> Result<()> {
         options,
         Box::new(move |cc| Box::new(DialsApp::new(cc, &STATE))),
     );
+
+    Ok(())
 }
 
 /// Our program's actual internal model, as opposed to the "view" which is our UI

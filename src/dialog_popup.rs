@@ -74,7 +74,7 @@ impl eframe::App for DialogPopupWindow {
                 ui.add_space(20.0);
 
                 if ui.button("Ok").clicked() {
-                    frame.quit();
+                    frame.close();
                 }
             });
         });

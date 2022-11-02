@@ -23,9 +23,12 @@ use crate::{
 pub struct AppState {
     pub dial_rows: Vec<Vec<Dial>>,
     pub ball: Ball,
+    /// The input axes as stored as [-1.0 to 1.0, -1.0 to 1.0]: [x, y]
     pub input_axes: Vec2,
+    /// The input axes as stored as [0.0 to 1.0, 0.0 to 1.0]
     pub input_x: [f32; 2],
     pub input_y: [f32; 2],
+    /// If a key was recently pressed which is to be interpreted as an alarm reaction
     pub pressed_key: Option<char>,
     pub queued_alarms: VecDeque<TriggeredAlarm>,
     pub last_keys: HashMap<Key, bool>,
