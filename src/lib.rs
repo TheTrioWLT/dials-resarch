@@ -14,7 +14,6 @@ use std::{
 
 use app::{AppState, DialsApp};
 
-use crate::error_popup::ErrorPopup;
 use crate::{ball::Ball, output::DialReaction};
 use gilrs::{Event, Gilrs};
 
@@ -50,14 +49,11 @@ pub fn run() -> Result<()> {
             Err(e) => {
                 eprintln!("Failed to parse configuration file: {e}");
 
-                let popup = ErrorPopup::new(
+                error_popup::show(
                     "Configuration Error",
                     "Failed to parse configuration file",
                     format!("{e}"),
                 );
-                popup.show();
-
-                std::process::exit(1);
             }
         }
     } else {
@@ -83,10 +79,7 @@ pub fn run() -> Result<()> {
             eprintln!("Does the file exist?");
 
             let message = format!("Failed to load {}\n{e}", &alarm.audio_path);
-            let popup = ErrorPopup::new("Audio Load Error", "Failed to load audio file", message);
-            popup.show();
-
-            std::process::exit(1);
+            error_popup::show("Audio Load Error", "Failed to load audio file", message);
         }
     }
 
@@ -247,11 +240,7 @@ fn validate_config(config: &mut config::Config) {
                 let message = format!(
                     "Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}"
                 );
-                let popup =
-                    ErrorPopup::new("Configuration Error", "Invalid configuration", message);
-                popup.show();
-
-                std::process::exit(1);
+                error_popup::show("Configuration Error", "Invalid configuration", message);
             }
         }
     }
