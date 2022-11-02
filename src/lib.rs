@@ -18,7 +18,7 @@ use std::{
 use app::{AppState, DialsApp};
 
 use crate::dialog_popup::DialogPopup;
-use crate::{ball::Ball, output::DialReaction};
+use crate::{ball::Ball, output::AlarmReaction};
 use gilrs::{Event, Gilrs};
 
 mod app;
@@ -218,7 +218,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 let current_rms_error = state.ball.current_rms_error();
                 let dial = &mut state.dial_rows[alarm.row_id as usize][alarm.col_id as usize];
 
-                let reaction = DialReaction::new(
+                let reaction = AlarmReaction::new(
                     dial.alarm_name().clone(),
                     millis,
                     alarm.correct_key == key,
