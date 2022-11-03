@@ -9,10 +9,12 @@ pub fn show(title: impl AsRef<str>, heading: impl Into<String>, message: impl In
         ..NativeOptions::default()
     };
 
+    let heading = heading.into();
+    let message = message.into();
     eframe::run_native(
         title.as_ref(),
         native_options,
-        Box::new(move |cc| Box::new(ErrorPopupWindow::new(heading.into(), message.into(), cc))),
+        Box::new(move |cc| Box::new(ErrorPopupWindow::new(heading, message, cc))),
     );
 }
 
