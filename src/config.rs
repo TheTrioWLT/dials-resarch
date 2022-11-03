@@ -6,40 +6,73 @@ pub struct Config {
     /// Where the output data gets stored to once the experiment is done
     pub output_data_path: Option<String>,
 
+    /// What type of input is desired for the program:
+    ///
+    /// [`InputMode`]
     pub input_mode: InputMode,
 
+    /// Attributes necessary for the ball that we need
+    ///
+    /// ['Ball'] For more information
     pub ball: Ball,
 
     #[serde(rename = "row")]
+    /// Number of rows for dials along with Dial attributes needed.
+    ///
+    /// ['DialRow'] ['Dial'] for more information
     pub dial_rows: Vec<DialRow>,
+
+    /// Attributes for the alamrs such as what keys stops them and the file to use.
+    ///
+    /// ['Alarm']
     pub alarms: Vec<Alarm>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Ball {
+    /// Stores the range for random time.
+    ///
+    /// This specifically stores the minimum time of the range
     pub random_direction_change_time_min: f32,
+
+    /// Stores the Maximum time for the range.
     pub random_direction_change_time_max: f32,
+
+    /// Specifies the velocity type of the ball;
+    ///
+    /// -Slow
+    ///
+    /// -Medium
+    ///
+    /// -Fast
+    ///
+    /// [`BallVelocity`]
     pub velocity_meter: BallVelocity,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Dial {
     /// The name of the alarm this dial uses
+    ///
     pub alarm: String,
 
     /// The start of the "in-range"
+    ///
     pub start: f32,
     /// The end of the "in-range"
+    ///
     pub end: f32,
 
     /// The absolute time at which this alarm
     /// should sound, aka. when the dial should drift out of range
+    ///
     pub alarm_time: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DialRow {
     /// A row of dials on the GUI
+    ///
     #[serde(rename = "dial")]
     pub dials: Vec<Dial>,
 }
@@ -47,17 +80,22 @@ pub struct DialRow {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Alarm {
     /// The user defined name of this alarm. Used to match up which alarm is being used in
+    ///
     /// [`Dial::alarm`]
     pub name: String,
 
     /// The path to the audio file for this alarm
+    ///
     pub audio_path: String,
 
     /// The key that clears this alarm.
+    ///
     /// Case insensitive single letter
+    ///
     pub clear_key: char,
 }
 
+///Default Config file that is made if no "config.json" is detected
 impl Default for Config {
     fn default() -> Self {
         let range_size = 4000.0;
