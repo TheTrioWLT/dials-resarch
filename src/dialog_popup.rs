@@ -1,7 +1,7 @@
 use eframe::egui::Vec2;
 use eframe::{egui, NativeOptions};
 
-pub fn show(title: impl AsRef<str>, heading: impl Into<String>, message: impl Into<String>) -> ! {
+pub fn show(title: impl AsRef<str>, heading: impl Into<String>, message: impl Into<String>) {
     let native_options = NativeOptions {
         always_on_top: true,
         resizable: false,
@@ -11,20 +11,21 @@ pub fn show(title: impl AsRef<str>, heading: impl Into<String>, message: impl In
 
     let heading = heading.into();
     let message = message.into();
+
     eframe::run_native(
         title.as_ref(),
         native_options,
-        Box::new(move |cc| Box::new(ErrorPopupWindow::new(heading, message, cc))),
-    );
+        Box::new(move |cc| Box::new(DialogPopupWindow::new(heading, message, cc))),
+    )
 }
 
 #[derive(Default)]
-struct ErrorPopupWindow {
+struct DialogPopupWindow {
     heading: String,
     message: String,
 }
 
-impl ErrorPopupWindow {
+impl DialogPopupWindow {
     fn new(heading: String, message: String, cc: &eframe::CreationContext<'_>) -> Self {
         Self::style(cc);
 
@@ -38,7 +39,7 @@ impl ErrorPopupWindow {
     }
 }
 
-impl eframe::App for ErrorPopupWindow {
+impl eframe::App for DialogPopupWindow {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered(|ui| {
@@ -51,7 +52,7 @@ impl eframe::App for ErrorPopupWindow {
                 ui.add_space(20.0);
 
                 if ui.button("Ok").clicked() {
-                    frame.quit();
+                    frame.close();
                 }
             });
         });

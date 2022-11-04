@@ -6,19 +6,45 @@ pub struct Config {
     /// Where the output data gets stored to once the experiment is done
     pub output_data_path: Option<String>,
 
+    /// What type of input is desired for the program:
+    ///
+    /// [`InputMode`]
     pub input_mode: InputMode,
 
+    /// Attributes necessary for the ball that we need
+    ///
+    /// ['Ball'] For more information
     pub ball: Ball,
 
     #[serde(rename = "row")]
+    /// Number of rows for dials along with Dial attributes needed.
+    ///
+    /// ['DialRow'] ['Dial'] for more information
     pub dial_rows: Vec<DialRow>,
+
+    /// Attributes for the alarms such as what keys stops them and the file to use.
+    ///
+    /// ['Alarm']
     pub alarms: Vec<Alarm>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Ball {
+    /// Stores the range for random time.
+    ///
+    /// This specifically stores the minimum time of the range
     pub random_direction_change_time_min: f32,
+
+    /// Stores the Maximum time for the range.
     pub random_direction_change_time_max: f32,
+
+    /// Specifies the velocity type of the ball;
+    ///
+    /// -Slow
+    /// -Medium
+    /// -Fast
+    ///
+    /// [`BallVelocity`]
     pub velocity_meter: BallVelocity,
 }
 
@@ -47,6 +73,7 @@ pub struct DialRow {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Alarm {
     /// The user defined name of this alarm. Used to match up which alarm is being used in
+    ///
     /// [`Dial::alarm`]
     pub name: String,
 
@@ -54,10 +81,12 @@ pub struct Alarm {
     pub audio_path: String,
 
     /// The key that clears this alarm.
+    ///
     /// Case insensitive single letter
     pub clear_key: char,
 }
 
+///Default Config file that is made if no "config.json" is detected
 impl Default for Config {
     fn default() -> Self {
         let range_size = 4000.0;
@@ -102,10 +131,13 @@ impl Default for Config {
     }
 }
 
+/// The input mode for controlling the ball
 #[derive(Debug, Deserialize, Serialize, Default, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum InputMode {
+    /// Joystick input through [`gilrs`]
     Joystick,
+    /// Keyboard input through WASD
     #[default]
     Keyboard,
 }
