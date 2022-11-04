@@ -108,6 +108,8 @@ impl AudioManager {
     }
 }
 
+/// Custom [`rodio::Source`] that holds a shallow copy of its data to allow for easy cloning since
+/// playing a sample consumes self
 #[derive(Clone, Debug)]
 pub struct SoundSample {
     channels: u16,
@@ -117,8 +119,6 @@ pub struct SoundSample {
     offset: usize,
 }
 
-/// Custom `rodio::Source` that holds a shallow copy of its data to allow for easy cloning since
-/// playing a sample consumes self
 impl SoundSample {
     pub fn new<S>(source: S) -> Self
     where
