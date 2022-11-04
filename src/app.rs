@@ -1,4 +1,3 @@
-use std::ops::{Deref, DerefMut};
 use std::{
     collections::{HashMap, VecDeque},
     sync::Mutex,
@@ -19,6 +18,7 @@ use crate::{
     },
     output::SessionOutput,
     tracking_widget::TrackingWidget,
+    DEFAULT_OUTPUT_PATH,
 };
 
 // We don't really need extra indirection by Box-ing RunningState, we aren't moving a bunch
@@ -96,7 +96,7 @@ impl DialsApp {
     pub fn ui(&mut self, ctx: &egui::Context) {
         let state = self.state_mutex.lock().unwrap();
 
-        match state.deref() {
+        match &*state {
             AppState::Running(running_state) => {
                 self.dial_ui(ctx, running_state);
                 self.tracking_ui(ctx, running_state);
@@ -111,7 +111,11 @@ impl DialsApp {
     fn done_ui(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {
-                ui.label("Trial Complete!");
+                // This has to be a *single* widget so that we don't have to do a bunch of math...
+                ui.label(format!(
+                    "Trial Complete!\n\nTrial data saved to: {}",
+                    DEFAULT_OUTPUT_PATH
+                ));
             });
         });
     }
@@ -220,7 +224,7 @@ impl eframe::App for DialsApp {
 
         let mut state = self.state_mutex.lock().unwrap();
 
-        match state.deref_mut() {
+        match &mut *state {
             AppState::Running(state) => {
                 let (mut input_x, mut input_y) = { (state.input_x, state.input_y) };
 

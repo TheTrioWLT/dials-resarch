@@ -1,14 +1,9 @@
-//! Our module that implements the dials research app.`
-
-extern crate core;
-
 use anyhow::{bail, Result};
 use audio::AudioManager;
 use dial::{Dial, DialRange};
 use eframe::epaint::Vec2;
 use lazy_static::lazy_static;
 use output::SessionOutput;
-use std::ops::DerefMut;
 use std::{
     collections::HashMap,
     sync::Mutex,
@@ -117,7 +112,7 @@ pub fn run() -> Result<()> {
     {
         let mut state = STATE.lock().unwrap();
 
-        if let AppState::Running(state) = state.deref_mut() {
+        if let AppState::Running(state) = &mut *state {
             // Assign all of the values that we have created from the configuration file
             // because these had to come with defaults since it is static
             state.input_mode = config.input_mode;
@@ -134,7 +129,7 @@ pub fn run() -> Result<()> {
                     .unwrap_or_else(|| String::from(DEFAULT_OUTPUT_PATH)),
             );
         } else {
-            panic!();
+            panic!("App always in the running state on startup");
         }
     }
 
@@ -176,7 +171,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     let mut joystick_input_axes = Vec2::default();
     let total_num_alarms = {
         let mut state = state.lock().unwrap();
-        if let AppState::Running(state) = state.deref_mut() {
+        if let AppState::Running(state) = &mut *state {
             state.dial_rows.iter().map(|r| r.len()).sum()
         } else {
             panic!();
@@ -193,7 +188,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
         let mut state = state.lock().unwrap();
 
-        match state.deref_mut() {
+        match &mut *state {
             AppState::Running(state) => {
                 // We need an extra vec here so that we can mutably borrow both `state.dial_rows` and
                 // `state.queued_alarms` at the same time
