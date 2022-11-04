@@ -22,7 +22,7 @@ pub struct Config {
     /// ['DialRow'] ['Dial'] for more information
     pub dial_rows: Vec<DialRow>,
 
-    /// Attributes for the alamrs such as what keys stops them and the file to use.
+    /// Attributes for the alarms such as what keys stops them and the file to use.
     ///
     /// ['Alarm']
     pub alarms: Vec<Alarm>,
@@ -41,9 +41,7 @@ pub struct Ball {
     /// Specifies the velocity type of the ball;
     ///
     /// -Slow
-    ///
     /// -Medium
-    ///
     /// -Fast
     ///
     /// [`BallVelocity`]
@@ -53,26 +51,21 @@ pub struct Ball {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Dial {
     /// The name of the alarm this dial uses
-    ///
     pub alarm: String,
 
     /// The start of the "in-range"
-    ///
     pub start: f32,
     /// The end of the "in-range"
-    ///
     pub end: f32,
 
     /// The absolute time at which this alarm
     /// should sound, aka. when the dial should drift out of range
-    ///
     pub alarm_time: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DialRow {
     /// A row of dials on the GUI
-    ///
     #[serde(rename = "dial")]
     pub dials: Vec<Dial>,
 }
@@ -85,13 +78,11 @@ pub struct Alarm {
     pub name: String,
 
     /// The path to the audio file for this alarm
-    ///
     pub audio_path: String,
 
     /// The key that clears this alarm.
     ///
     /// Case insensitive single letter
-    ///
     pub clear_key: char,
 }
 
@@ -140,10 +131,13 @@ impl Default for Config {
     }
 }
 
+/// The input mode for controlling the ball
 #[derive(Debug, Deserialize, Serialize, Default, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum InputMode {
+    /// Joystick input through [`gilrs`]
     Joystick,
+    /// Keyboard input through WASD
     #[default]
     Keyboard,
 }
