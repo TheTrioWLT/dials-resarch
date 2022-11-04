@@ -1,39 +1,22 @@
 use eframe::egui::Vec2;
 use eframe::{egui, NativeOptions};
 
-pub struct DialogPopup {
-    title: String,
-    heading: String,
-    message: String,
-}
+pub fn show(title: impl AsRef<str>, heading: impl Into<String>, message: impl Into<String>) {
+    let native_options = NativeOptions {
+        always_on_top: true,
+        resizable: false,
+        initial_window_size: Some(Vec2::new(400.0, 160.0)),
+        ..NativeOptions::default()
+    };
 
-impl DialogPopup {
-    pub fn new(
-        title: impl Into<String>,
-        heading: impl Into<String>,
-        message: impl Into<String>,
-    ) -> Self {
-        Self {
-            title: title.into(),
-            heading: heading.into(),
-            message: message.into(),
-        }
-    }
+    let heading = heading.into();
+    let message = message.into();
 
-    pub fn show(self) {
-        let native_options = NativeOptions {
-            always_on_top: true,
-            resizable: false,
-            initial_window_size: Some(Vec2::new(400.0, 160.0)),
-            ..NativeOptions::default()
-        };
-        let title = self.title.clone();
-        eframe::run_native(
-            &title,
-            native_options,
-            Box::new(move |cc| Box::new(DialogPopupWindow::new(self, cc))),
-        );
-    }
+    eframe::run_native(
+        title.as_ref(),
+        native_options,
+        Box::new(move |cc| Box::new(DialogPopupWindow::new(heading, message, cc))),
+    )
 }
 
 #[derive(Default)]
@@ -43,13 +26,10 @@ struct DialogPopupWindow {
 }
 
 impl DialogPopupWindow {
-    fn new(error_data: DialogPopup, cc: &eframe::CreationContext<'_>) -> Self {
+    fn new(heading: String, message: String, cc: &eframe::CreationContext<'_>) -> Self {
         Self::style(cc);
 
-        Self {
-            heading: error_data.heading,
-            message: error_data.message,
-        }
+        Self { heading, message }
     }
 
     fn style(cc: &eframe::CreationContext<'_>) {
@@ -66,11 +46,9 @@ impl eframe::App for DialogPopupWindow {
                 ui.add_space(20.0);
 
                 ui.heading(&self.heading);
-
                 ui.add_space(20.0);
 
                 ui.label(&self.message);
-
                 ui.add_space(20.0);
 
                 if ui.button("Ok").clicked() {

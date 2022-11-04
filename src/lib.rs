@@ -13,7 +13,6 @@ use std::{
 
 use app::{AppState, DialsApp};
 
-use crate::dialog_popup::DialogPopup;
 use crate::{ball::Ball, output::AlarmReaction};
 use gilrs::{Event, Gilrs};
 
@@ -46,12 +45,11 @@ pub fn run() -> Result<()> {
         match toml::from_str(&toml) {
             Ok(t) => t,
             Err(e) => {
-                let popup = DialogPopup::new(
+                dialog_popup::show(
                     "Configuration Error",
                     "Failed to parse configuration file",
                     format!("{e}"),
                 );
-                popup.show();
 
                 bail!("Failed to parse configuration file: {}", e);
             }
@@ -77,8 +75,8 @@ pub fn run() -> Result<()> {
     for alarm in alarms.values() {
         if let Err(e) = audio.preload_file(&alarm.audio_path) {
             let message = format!("Failed to load {}\n{e}", &alarm.audio_path);
-            let popup = DialogPopup::new("Audio Load Error", "Failed to load audio file", message);
-            popup.show();
+
+            dialog_popup::show("Audio Load Error", "Failed to load audio file", message);
 
             bail!(
                 "Failed to load audio file `{}`: {e}\nDoes the file exist?",
@@ -269,6 +267,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                         if state.num_alarms_done == total_num_alarms {
                             state.session_output.write_to_file();
+
                             log::info!(
                                 "wrote session output to file: {}",
                                 state.session_output.output_path
@@ -306,12 +305,11 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
                     "Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}"
                 );
 
-                let popup = DialogPopup::new(
+                dialog_popup::show(
                     "Configuration Error",
                     "Invalid configuration",
                     message.clone(),
                 );
-                popup.show();
 
                 bail!(message);
             }
