@@ -156,10 +156,13 @@ pub fn run() -> Result<()> {
 
 /// Our program's actual internal model, as opposed to the "view" which is our UI
 fn model(state: &Mutex<AppState>, audio: AudioManager) {
+    // Make instance of the crate that takes care of the joystick inputs.
     let mut gilrs = Gilrs::new().unwrap();
 
     let mut last_update = Instant::now();
 
+    // Outputs the type of device that is detected by Gilrs.
+    // If information is not recognized by library then it will output the default OS provided name
     for (_id, gamepad) in gilrs.gamepads() {
         log::info!(
             "Joystick {} detected: {:?}",
@@ -168,7 +171,10 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
         );
     }
 
+    // Keep track of the joystick's axes
+    // This is only called if jostick is the input mode otherwise goes to keyboard state input
     let mut joystick_input_axes = Vec2::default();
+
     let total_num_alarms = {
         let mut state = state.lock().unwrap();
         if let AppState::Running(state) = &mut *state {
@@ -205,7 +211,14 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                 state.queued_alarms.extend(alarms);
 
-                // Get joystick input
+                // Takes the event detected by the joystick being used.
+                // Events detected can be 3 types of axes:
+                //   -X
+                //   -Y
+                //   -Z
+                // The only ones we care about are X and Y.
+                // We then take the amount the joystick moves. This is already filtered by on a scale
+                // -1 to 1 where 0 is centered or not moving.
                 while let Some(Event { event, .. }) = gilrs.next_event() {
                     if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
                         match axis {
@@ -220,6 +233,9 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                     }
                 }
 
+                // Depending on the type of input specified in the config file it will then proceed to
+                // decide to either use the joystick axes or the keyboard.
+                // If needed more will be added, such as Mouse input.
                 let input_axes = match state.input_mode {
                     config::InputMode::Joystick => joystick_input_axes,
                     config::InputMode::Keyboard => state.input_axes,
