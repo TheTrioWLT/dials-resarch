@@ -159,6 +159,15 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
     let mut last_update = Instant::now();
 
+    // In units of milliseconds. The time after the last dial alarm was acknowledged until
+    // the "Trial Complete!" splash screen is shown.
+    const SPLASH_SCREEN_DELAY: u64 = 10_000;
+    // This is set to true when the state.num_dials_done is equal to the number of dials
+    let mut is_done = false;
+    // Represents the instant where the last dial alarm was acknowledged. The initial
+    // value here is thrown away, and re-set when the state.num_alarms_done is max.
+    let mut last_dial_time = Instant::now();
+
     // Outputs the type of device that is detected by Gilrs.
     // If information is not recognized by library then it will output the default OS provided name
     for (_id, gamepad) in gilrs.gamepads() {
@@ -170,7 +179,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     }
 
     // Keep track of the joystick's axes
-    // This is only called if jostick is the input mode otherwise goes to keyboard state input
+    // This is only called if joystick is the input mode otherwise goes to keyboard state input
     let mut joystick_input_axes = Vec2::default();
 
     let total_num_alarms = {
@@ -264,20 +273,28 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         state.session_output.add_reaction(reaction);
 
                         state.num_alarms_done += 1;
+                    }
 
-                        if state.num_alarms_done == total_num_alarms {
-                            state.session_output.write_to_file();
+                    if !is_done && state.num_alarms_done == total_num_alarms {
+                        state.session_output.write_to_file();
 
-                            log::info!(
-                                "wrote session output to file: {}",
-                                state.session_output.output_path
-                            );
+                        log::info!(
+                            "wrote session output to file: {}",
+                            state.session_output.output_path
+                        );
 
-                            new_appstate = Some(AppState::Done);
-                        }
+                        last_dial_time = Instant::now();
+                        is_done = true;
                     }
 
                     state.pressed_key = None;
+                }
+
+                // We have a delay before going to the end screen
+                if is_done && last_dial_time.elapsed() >= Duration::from_millis(SPLASH_SCREEN_DELAY)
+                {
+                    // Change the state to Done and therefore show the splash screen
+                    new_appstate = Some(AppState::Done);
                 }
             }
             AppState::Done => {}
