@@ -159,9 +159,9 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
     let mut last_update = Instant::now();
 
-    // In units of milliseconds. The time after the last dial alarm was acknowledged until
+    // The time after the last dial alarm was acknowledged until
     // the "Trial Complete!" splash screen is shown.
-    const SPLASH_SCREEN_DELAY: u64 = 10_000;
+    const SPLASH_SCREEN_DELAY: Duration = Duration::from_secs(10);
     // This is set to true when the state.num_dials_done is equal to the number of dials
     let mut is_done = false;
     // Represents the instant where the last dial alarm was acknowledged. The initial
@@ -291,8 +291,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 }
 
                 // We have a delay before going to the end screen
-                if is_done && last_dial_time.elapsed() >= Duration::from_millis(SPLASH_SCREEN_DELAY)
-                {
+                if is_done && last_dial_time.elapsed() >= SPLASH_SCREEN_DELAY {
                     // Change the state to Done and therefore show the splash screen
                     new_appstate = Some(AppState::Done);
                 }
