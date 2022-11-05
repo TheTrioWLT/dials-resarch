@@ -806,7 +806,7 @@ dependencies = [
 [[package]]
 name = "gilrs"
 version = "0.9.0"
-source = "git+https://gitlab.com/paul-hansen/gilrs.git?branch=wgi#8817af3bfcb45b38bd3bc17955df2b3e5f96a683"
+source = "git+https://gitlab.com/gilrs-project/gilrs?rev=0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5#0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5"
 dependencies = [
  "fnv",
  "gilrs-core",
@@ -818,7 +818,7 @@ dependencies = [
 [[package]]
 name = "gilrs-core"
 version = "0.4.1"
-source = "git+https://gitlab.com/paul-hansen/gilrs.git?branch=wgi#8817af3bfcb45b38bd3bc17955df2b3e5f96a683"
+source = "git+https://gitlab.com/gilrs-project/gilrs?rev=0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5#0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5"
 dependencies = [
  "core-foundation",
  "io-kit-sys",
