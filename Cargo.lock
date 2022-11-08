@@ -805,8 +805,9 @@ dependencies = [
 
 [[package]]
 name = "gilrs"
-version = "0.9.0"
-source = "git+https://gitlab.com/gilrs-project/gilrs?rev=0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5#0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf89da6f52447f12bf217e0527d39413906aa2bc201c52842bb8e80cff107d4a"
 dependencies = [
  "fnv",
  "gilrs-core",
@@ -817,8 +818,9 @@ dependencies = [
 
 [[package]]
 name = "gilrs-core"
-version = "0.4.1"
-source = "git+https://gitlab.com/gilrs-project/gilrs?rev=0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5#0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d97f0eb2b966486c0bcd6ef4c2ff66f403a714f1bcf070de824d7b90e17929e2"
 dependencies = [
  "core-foundation",
  "io-kit-sys",
@@ -826,12 +828,12 @@ dependencies = [
  "libc",
  "libudev-sys",
  "log",
- "nix 0.24.2",
+ "nix 0.25.0",
  "uuid",
  "vec_map",
  "wasm-bindgen",
  "web-sys",
- "windows 0.42.0",
+ "windows 0.43.0",
 ]
 
 [[package]]
@@ -2372,9 +2374,9 @@ dependencies = [
 
 [[package]]
 name = "windows"
-version = "0.42.0"
+version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0286ba339aa753e70765d521bb0242cc48e1194562bfa2a2ad7ac8a6de28f5d5"
+checksum = "04662ed0e3e5630dfa9b26e4cb823b817f1a9addda855d973a9458c236556244"
 dependencies = [
  "windows_aarch64_gnullvm",
  "windows_aarch64_msvc 0.42.0",
