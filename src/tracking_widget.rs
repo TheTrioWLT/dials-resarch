@@ -11,8 +11,6 @@ const FRAME_BORDER_COLOR: Color32 = Color32::WHITE;
 const FRAME_MAX_HEIGHT_PERCENT: f32 = 1.0;
 const FRAME_MAX_WIDTH_PERCENT: f32 = 0.7;
 
-// This is a percentage of the *frame size*, not window size
-const CROSSHAIR_SIZE_PERCENT: f32 = 0.125;
 const CROSSHAIR_STROKE: f32 = 1.0;
 const CROSSHAIR_COLOR: Color32 = Color32::WHITE;
 
@@ -52,7 +50,7 @@ impl TrackingWidget {
             // Draw the crosshair
             // The frame is guaranteed to be square
             let frame_width = rect.width();
-            let crosshair_half_size = CROSSHAIR_SIZE_PERCENT * frame_width / 2.0;
+            let crosshair_half_size = BALL_RADIUS * frame_width / 2.0;
             let center = rect.center();
 
             let v_top_pos = Pos2::new(center.x, center.y - crosshair_half_size);
