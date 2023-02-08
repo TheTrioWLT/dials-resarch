@@ -158,7 +158,7 @@ impl Ball {
 fn new_vel(length: f32) -> Vec2 {
     let mut rng = rand::thread_rng();
 
-    // Some how by MAF, changing the angle between -pi/2 to pi/2 makes it so the ball nevers goes towards the center of the screen. 
+    // Some how by MAF, changing the angle between -pi/2 to pi/2 makes it so the ball nevers goes towards the center of the screen.
     // To be fair I'm not math major so i don't have a solid explanation for this. I'm thinking is just because the ball will go perpendicular to its position.
     let radians = rng.gen_range(-f32::consts::FRAC_PI_2..f32::consts::FRAC_PI_2);
 
