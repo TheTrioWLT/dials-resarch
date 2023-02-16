@@ -49,7 +49,8 @@ pub fn run() -> Result<()> {
                     "Configuration Error",
                     "Failed to parse configuration file",
                     format!("{e}"),
-                );
+                )
+                .unwrap();
 
                 bail!("Failed to parse configuration file: {}", e);
             }
@@ -76,7 +77,7 @@ pub fn run() -> Result<()> {
         if let Err(e) = audio.preload_file(&alarm.audio_path) {
             let message = format!("Failed to load {}\n{e}", &alarm.audio_path);
 
-            dialog_popup::show("Audio Load Error", "Failed to load audio file", message);
+            dialog_popup::show("Audio Load Error", "Failed to load audio file", message).unwrap();
 
             bail!(
                 "Failed to load audio file `{}`: {e}\nDoes the file exist?",
@@ -147,7 +148,8 @@ pub fn run() -> Result<()> {
         "Dials App",
         options,
         Box::new(move |cc| Box::new(DialsApp::new(cc, &STATE))),
-    );
+    )
+    .unwrap();
 
     Ok(())
 }
@@ -325,7 +327,8 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
                     "Configuration Error",
                     "Invalid configuration",
                     message.clone(),
-                );
+                )
+                .unwrap();
 
                 bail!(message);
             }

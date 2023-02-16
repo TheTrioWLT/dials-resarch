@@ -231,13 +231,14 @@ impl eframe::App for DialsApp {
                 let mut pressed_key = None;
 
                 // Listen to events
-                let events = ctx.input().events.clone();
+                let events = ctx.input(|input| input.events.clone());
 
                 for event in events {
                     if let egui::Event::Key {
                         key,
                         pressed,
                         modifiers: _,
+                        repeat: _,
                     } = event
                     {
                         let last_pressed = { *state.last_keys.entry(key).or_insert(false) };

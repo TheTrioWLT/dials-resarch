@@ -1,7 +1,11 @@
 use eframe::egui::Vec2;
-use eframe::{egui, NativeOptions};
+use eframe::{egui, Error, NativeOptions};
 
-pub fn show(title: impl AsRef<str>, heading: impl Into<String>, message: impl Into<String>) {
+pub fn show(
+    title: impl AsRef<str>,
+    heading: impl Into<String>,
+    message: impl Into<String>,
+) -> Result<(), Error> {
     let native_options = NativeOptions {
         always_on_top: true,
         resizable: false,
