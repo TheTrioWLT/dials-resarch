@@ -45,7 +45,7 @@ pub struct Ball {
     /// -Fast
     ///
     /// [`BallVelocity`]
-    pub velocity_meter: BallVelocity,
+    pub ball_velocity: BallVelocity,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -94,7 +94,7 @@ impl Default for Config {
             ball: Ball {
                 random_direction_change_time_min: 1.0,
                 random_direction_change_time_max: 8.0,
-                velocity_meter: BallVelocity::Slow,
+                ball_velocity: BallVelocity::Slow,
             },
             output_data_path: None,
             input_mode: InputMode::default(),

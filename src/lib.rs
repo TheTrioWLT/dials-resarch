@@ -119,7 +119,7 @@ pub fn run() -> Result<()> {
             state.ball = Ball::new(
                 config.ball.random_direction_change_time_min,
                 config.ball.random_direction_change_time_max,
-                config.ball.velocity_meter,
+                config.ball.ball_velocity,
             );
             state.session_output = SessionOutput::new(
                 config
