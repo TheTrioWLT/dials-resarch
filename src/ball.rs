@@ -179,12 +179,6 @@ impl Ball {
         let radians_offset = rng.gen_range(0.0..absolute_largest_difference);
         let radians = right_deadzone + radians_offset;
 
-        log::info!(
-            "Deadzone width: {} [{}]",
-            absolute_largest_difference,
-            f32::consts::TAU - CROSSHAIR_AVOIDANCE_DEADZONE
-        );
-
         let (x, y) = (radians.cos(), radians.sin());
 
         Vec2::new(x * self.velocity.length(), y * self.velocity.length())
