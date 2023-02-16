@@ -1,15 +1,14 @@
 use std::f32;
 
 use eframe::{egui, emath::Vec2};
-use egui::Pos2;
-use rand::prelude::*;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 /// Area percentage rather than pixels
 const BALL_RADIUS: f32 = 0.03;
 
 /// Starting position which is the center of the screen.
-const BALL_START_POS: Pos2 = Pos2::new(0.0, 0.0);
+const BALL_START_POS: Vec2 = Vec2::new(0.0, 0.0);
 
 /// Parameter for the slow velocity, it cannot be changed within the program.
 const BALL_SLOW_VELOCITY: f32 = 0.30;
@@ -21,6 +20,9 @@ const BALL_MEDIUM_VELOCITY: f32 = 0.60;
 const BALL_FAST_VELOCITY: f32 = 1.20;
 
 const BALL_NUDGE_RATE: f32 = 1.2;
+
+/// Angle in radians around the crosshair to avoid randomly moving in
+const CROSSHAIR_AVOIDANCE_DEADZONE: f32 = f32::consts::FRAC_PI_2;
 
 /// Three types of velocity for the ball
 /// By default the one that will be used the most is Slow as is the one that makes it easy to
@@ -45,7 +47,7 @@ pub struct Ball {
     ///
     /// We use a default range of -1.0 to 1.0 where 0.0 is the center of the screen.
     /// This is later then factored to the monitor's dimension to be scale it properly.
-    pos: Pos2,
+    pos: Vec2,
 
     velocity: Vec2,
 
@@ -79,9 +81,15 @@ impl Ball {
             BallVelocity::Fast => BALL_FAST_VELOCITY,
         };
 
+        let mut rng = rand::thread_rng();
+
+        let radians = rng.gen_range(0.0..f32::consts::TAU);
+        let (x, y) = (radians.cos(), radians.sin());
+        let initial_vel = Vec2::new(x * length, y * length);
+
         Self {
             pos: BALL_START_POS,
-            velocity: new_vel(length),
+            velocity: initial_vel,
             time_running: 0.0,
             velocity_change_time_at: 0.0,
             random_direction_change_time_min,
@@ -104,7 +112,7 @@ impl Ball {
         let mut rng = rand::thread_rng();
 
         if self.time_running >= self.velocity_change_time_at {
-            self.velocity = new_vel(self.velocity.length());
+            self.velocity = self.new_vel();
 
             self.time_running = 0.0;
             self.velocity_change_time_at = rng.gen_range(
@@ -145,24 +153,50 @@ impl Ball {
         self.time_running += delta_time;
     }
 
+    /// Function to make calculate the new velocity.
+    /// This uses geometry where it can choose any velocity within a 360 degree angle of the ball.
+    ///
+    /// Note however that this takes into account the position of the ball relative to the crosshair.
+    /// The ball will never randomly change direction in a way that will bring it towards the crosshair.
+    /// This is done by limiting the random ball with a 90 degree deadzone for possible new angles.
+    fn new_vel(&self) -> Vec2 {
+        let mut rng = rand::thread_rng();
+
+        // The crosshair is positioned at (0, 0) in our coordinate system
+        // We add pi to get the angle from the ball to the crosshair, rather than the
+        // angle from the crosshair to the ball
+        let crosshair_angle = (self.pos.angle() + f32::consts::PI) % f32::consts::TAU;
+        let left_deadzone = ((crosshair_angle - CROSSHAIR_AVOIDANCE_DEADZONE / 2.0)
+            + f32::consts::TAU)
+            % f32::consts::TAU;
+        let right_deadzone = ((crosshair_angle + CROSSHAIR_AVOIDANCE_DEADZONE / 2.0)
+            + f32::consts::TAU)
+            % f32::consts::TAU;
+
+        let absolute_smallest_difference =
+            f32::consts::PI - ((left_deadzone - right_deadzone).abs() - f32::consts::PI).abs();
+        let absolute_largest_difference = f32::consts::TAU - absolute_smallest_difference;
+        let radians_offset = rng.gen_range(0.0..absolute_largest_difference);
+        let radians = right_deadzone + radians_offset;
+
+        log::info!(
+            "Deadzone width: {} [{}]",
+            absolute_largest_difference,
+            f32::consts::TAU - CROSSHAIR_AVOIDANCE_DEADZONE
+        );
+
+        let (x, y) = (radians.cos(), radians.sin());
+
+        Vec2::new(x * self.velocity.length(), y * self.velocity.length())
+    }
+
     pub fn current_rms_error(&self) -> f32 {
         self.pos.x.powf(2.0) + self.pos.y.powf(2.0) // Distance from the center squared
     }
 
-    pub fn pos(&self) -> Pos2 {
-        self.pos
+    pub fn pos(&self) -> egui::Pos2 {
+        self.pos.to_pos2()
     }
-}
-/// Function to make calculate the new velocity.
-/// This uses geometry where it can choose any velocity within a 360 degree angle of the ball.
-fn new_vel(length: f32) -> Vec2 {
-    let mut rng = rand::thread_rng();
-
-    let radians = rng.gen_range(0.0..2.0 * f32::consts::PI);
-
-    let (x, y) = (radians.cos(), radians.sin());
-
-    Vec2::new(x * length, y * length)
 }
 
 impl Default for Ball {
