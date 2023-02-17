@@ -21,6 +21,8 @@ use crate::{
     DEFAULT_OUTPUT_PATH,
 };
 
+const UI_BACKGROUND_COLOR: Color32 = Color32::from_rgb(27, 27, 27);
+
 // We don't really need extra indirection by Box-ing RunningState, we aren't moving a bunch
 // of AppState's around all the time
 #[allow(clippy::large_enum_variant)]
@@ -109,27 +111,31 @@ impl DialsApp {
 
     /// Draws the UI that shows when the trial is done
     fn done_ui(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.centered_and_justified(|ui| {
-                // This has to be a *single* widget so that we don't have to do a bunch of math...
-                ui.label(format!(
-                    "Trial Complete!\n\nTrial data saved to: {}",
-                    DEFAULT_OUTPUT_PATH
-                ));
+        egui::CentralPanel::default()
+            .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
+            .show(ctx, |ui| {
+                ui.centered_and_justified(|ui| {
+                    // This has to be a *single* widget so that we don't have to do a bunch of math...
+                    ui.label(format!(
+                        "Trial Complete!\n\nTrial data saved to: {}",
+                        DEFAULT_OUTPUT_PATH
+                    ));
+                });
             });
-        });
     }
 
     /// Draws the tracking task part of the UI
     fn tracking_ui(&mut self, ctx: &egui::Context, running_state: &RunningState) {
         let window_height = ctx.available_rect().height();
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.add_space(window_height * 0.025);
-                TrackingWidget::new(running_state.ball.pos()).show(ui);
+        egui::CentralPanel::default()
+            .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add_space(window_height * 0.025);
+                    TrackingWidget::new(running_state.ball.pos()).show(ui);
+                });
             });
-        });
     }
 
     /// Draws the dials part of the UI
@@ -145,7 +151,8 @@ impl DialsApp {
 
         egui::TopBottomPanel::bottom("bottom_panel")
             .max_height(bottom_panel_height)
-            .frame(Frame::none().fill(Color32::from_rgb(27, 27, 27)))
+            .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
+            .show_separator_line(false)
             .show(ctx, |ui| {
                 let max_num_dials = running_state
                     .dial_rows
