@@ -1,4 +1,4 @@
-use crate::config::Alarm;
+use crate::config::ConfigAlarm;
 use derive_new::new;
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, time::Instant};
@@ -98,14 +98,6 @@ pub struct Dial {
     col_id: u32,
     // The "in-range" for this dial: where it is supposed to be, and if it exits, the alarm sounds
     in_range: DialRange,
-    // The key that corresponds to deactivating this dial's alarm
-    key: char,
-    // The path to the dial's alarm's audio file
-    alarm_path: String,
-    // The name of the alarm that corresponds to this dial
-    alarm_name: String,
-    // If the alarm has already fired or not
-    alarm_fired: bool,
     // This dial's random path that it needs to traverse in order to drift up and down
     random_path: VecDeque<PathSegment>,
     // The current time into the current path segment
@@ -128,13 +120,8 @@ impl std::fmt::Display for DialId {
 impl Dial {
     /// Creates a new Dial with the provided row, column, in-range, alarm values, and the time_to_drift
     /// which represents how long until the dial should go out of its in-range
-    pub fn new(
-        row_id: u32,
-        col_id: u32,
-        in_range: DialRange,
-        alarm: &Alarm,
-        time_to_drift: f32,
-    ) -> Self {
+    pub fn new(row_id: u32, col_id: u32, in_range: DialRange) -> Self {
+        /*
         let random_path = generate_random_dial_path(
             &in_range,
             time_to_drift,
@@ -142,16 +129,14 @@ impl Dial {
             MAX_PATH_SEGMENTS,
             MIN_PATH_SEGMENTS,
         );
+         */
+        let random_path = VecDeque::new();
 
         Self {
             value: in_range.random_in(),
             row_id,
             col_id,
             in_range,
-            key: alarm.clear_key,
-            alarm_path: alarm.audio_path.clone(),
-            alarm_name: alarm.name.clone(),
-            alarm_fired: false,
             random_path,
             segment_time: 0.0,
             travel_direction: 1.0,
@@ -177,11 +162,7 @@ impl Dial {
     ///
     /// If this dial has gone out of range since the last update, the dial's alarm sound is played
     /// and `Some` is returned containing the relevant [`TriggeredAlarm`] data.
-    pub fn update(
-        &mut self,
-        delta_time: f32,
-        audio: &crate::AudioManager,
-    ) -> Option<TriggeredAlarm> {
+    pub fn update(&mut self, delta_time: f32) -> Option<TriggeredAlarm> {
         // Update the current time within the segment
         self.segment_time += delta_time;
 
@@ -202,6 +183,7 @@ impl Dial {
             self.value += self.travel_direction * 20.0 * delta_time;
         }
 
+        /*
         if !self.alarm_fired && !self.in_range.contains(self.value) {
             self.alarm_fired = true;
             // we preloaded each audio file so this shouldn't fail, and if it does we don't care
@@ -211,16 +193,13 @@ impl Dial {
         } else {
             None
         }
+         */
+        None
     }
 
     /// The value of the dial, where it is currently pointing
     pub fn value(&self) -> f32 {
         self.value
-    }
-
-    /// The name of the alarm that this dial sounds when it is out of range
-    pub fn alarm_name(&self) -> &String {
-        &self.alarm_name
     }
 
     /// The in-range for this dial
@@ -242,7 +221,7 @@ impl From<&Dial> for TriggeredAlarm {
             row_id: d.row_id,
             col_id: d.col_id,
             time: Instant::now(),
-            correct_key: d.key,
+            correct_key: ' ',
             id: d.dial_id(),
         }
     }

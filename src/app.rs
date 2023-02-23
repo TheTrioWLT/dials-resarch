@@ -9,6 +9,7 @@ use eframe::{
     epaint::Color32,
 };
 
+use crate::config::ConfigTrial;
 use crate::{
     ball::Ball,
     config::InputMode,
@@ -39,6 +40,7 @@ impl Default for AppState {
 
 pub struct RunningState {
     pub dial_rows: Vec<Vec<Dial>>,
+    pub trials: Vec<ConfigTrial>,
     pub ball: Ball,
     /// The input axes as stored as [-1.0 to 1.0, -1.0 to 1.0]: [x, y]
     pub input_axes: Vec2,
@@ -58,6 +60,7 @@ impl RunningState {
     pub fn new() -> Self {
         Self {
             dial_rows: Vec::new(),
+            trials: Vec::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
             input_axes: Vec2::ZERO,
             input_x: [0.0, 0.0],

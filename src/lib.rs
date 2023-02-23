@@ -69,7 +69,7 @@ pub fn run() -> Result<()> {
     let audio = AudioManager::new()?;
 
     // Maps alarm names to alarm structs
-    let alarms: HashMap<&str, &config::Alarm> =
+    let alarms: HashMap<&str, &config::ConfigAlarm> =
         config.alarms.iter().map(|d| (d.name.as_str(), d)).collect();
 
     // Loads the audio for each alarm
@@ -95,13 +95,10 @@ pub fn run() -> Result<()> {
                 // Loop through each dial in the row
                 .zip(row.dials.iter())
                 .map(|(col_id, dial)| {
-                    let alarm = alarms[dial.alarm.as_str()];
                     Dial::new(
                         row_id,
                         col_id,
-                        DialRange::new(dial.start, dial.end),
-                        alarm,
-                        dial.alarm_time,
+                        DialRange::new(dial.range_start, dial.range_end),
                     )
                 })
                 .collect()
@@ -115,6 +112,7 @@ pub fn run() -> Result<()> {
             // Assign all of the values that we have created from the configuration file
             // because these had to come with defaults since it is static
             state.input_mode = config.input_mode;
+            state.trials = config.trials;
             state.dial_rows = dial_rows;
             state.ball = Ball::new(
                 config.ball.random_direction_change_time_min,
@@ -212,7 +210,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 // Update all dials
                 for row in state.dial_rows.iter_mut() {
                     for dial in row.iter_mut() {
-                        if let Some(alarm) = dial.update(delta_time, &audio) {
+                        if let Some(alarm) = dial.update(delta_time) {
                             alarms.push(alarm);
                         }
                     }
@@ -261,8 +259,9 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         let dial =
                             &mut state.dial_rows[alarm.row_id as usize][alarm.col_id as usize];
 
+                        // TODO FIXME
                         let reaction = AlarmReaction::new(
-                            dial.alarm_name().clone(),
+                            String::from("placeholder"),
                             millis,
                             alarm.correct_key == key,
                             key,
@@ -317,8 +316,9 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
     // Loops through each dial and checks if its corresponding alarm exists in the map
     for row in &config.dial_rows {
         for dial in &row.dials {
-            let alarm_name = &dial.alarm;
-            if !alarm_names.contains(&alarm_name) {
+            // TODO FIXME
+            let alarm_name = String::from("a1");
+            if !alarm_names.contains(&&alarm_name) {
                 let message = format!(
                     "Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}"
                 );
