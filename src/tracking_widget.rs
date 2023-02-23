@@ -16,6 +16,8 @@ const CROSSHAIR_COLOR: Color32 = Color32::WHITE;
 
 const BALL_RADIUS: f32 = 0.03;
 
+pub const TEXT_FLASH_TIME: f32 = 0.8;
+
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
 #[derive(new)]
@@ -24,10 +26,12 @@ pub struct TrackingWidget {
     key_detected: bool,
 }
 
+//Keeps track of when a key is pressed and the time it has been since.
+//This structure communicates with AppState in order to get the information needed.
 #[derive(new)]
 pub struct TrackingWidgetState {
     pub key_detected: bool,
-    pub time_since: f32,
+    time_since: f32,
 }
 
 impl TrackingWidgetState {
@@ -37,6 +41,10 @@ impl TrackingWidgetState {
 
     pub fn update_time(&mut self, time: f32) {
         self.time_since += time;
+        if self.time_since >= TEXT_FLASH_TIME {
+            self.time_since = 0.0;
+            self.key_detected = false;
+        }
     }
 }
 

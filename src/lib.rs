@@ -275,6 +275,8 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         state.session_output.add_reaction(reaction);
 
                         state.num_alarms_done += 1;
+
+                        //Tell the state that a key was pressed after an alarm went off.
                         state.tracking_state.blink();
                     }
 
@@ -293,14 +295,10 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                     state.pressed_key = None;
                 }
 
+                //If key detected then start running time
                 if state.tracking_state.key_detected {
                     state.tracking_state.update_time(delta_time);
                 }
-                if state.tracking_state.time_since >= 0.7 {
-                    state.tracking_state.key_detected = false;
-                    state.tracking_state.time_since = 0.0;
-                }
-
                 // We have a delay before going to the end screen
                 if is_done && last_dial_time.elapsed() >= SPLASH_SCREEN_DELAY {
                     // Change the state to Done and therefore show the splash screen
