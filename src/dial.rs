@@ -31,6 +31,11 @@ impl DialRange {
         value <= self.end && value >= self.start
     }
 
+    /// Returns the value that is in the direct middle of the range
+    pub fn middle(&self) -> f32 {
+        (self.end - self.start) / 2.0 + self.start
+    }
+
     /// Returns a random value that is near the provided value within half of the maximum range
     pub fn random_near(&self, value: f32) -> f32 {
         // If we should increase or decrease
@@ -133,7 +138,7 @@ impl Dial {
         let random_path = VecDeque::new();
 
         Self {
-            value: in_range.random_in(),
+            value: in_range.middle(),
             row_id,
             col_id,
             in_range,
