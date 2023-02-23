@@ -275,6 +275,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         state.session_output.add_reaction(reaction);
 
                         state.num_alarms_done += 1;
+                        state.tracking_state.blink();
                     }
 
                     if !is_done && state.num_alarms_done == total_num_alarms {
@@ -290,6 +291,14 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                     }
 
                     state.pressed_key = None;
+                }
+
+                if state.tracking_state.key_detected {
+                    state.tracking_state.update_time(delta_time);
+                }
+                if state.tracking_state.time_since >= 0.7 {
+                    state.tracking_state.key_detected = false;
+                    state.tracking_state.reset_time();
                 }
 
                 // We have a delay before going to the end screen

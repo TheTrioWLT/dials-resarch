@@ -1,8 +1,8 @@
 use derive_new::new;
 use eframe::{
     egui,
-    emath::{Pos2, Vec2},
-    epaint::{CircleShape, Color32},
+    emath::{Align2, Pos2, Vec2},
+    epaint::{CircleShape, Color32, FontId},
 };
 
 const FRAME_BORDER_WIDTH: f32 = 1.0;
@@ -21,10 +21,31 @@ const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 #[derive(new)]
 pub struct TrackingWidget {
     ball_pos: Pos2,
+    key_detected: bool,
+}
+
+#[derive(new)]
+pub struct TrackingWidgetState {
+    pub key_detected: bool,
+    pub time_since: f32,
+}
+
+impl TrackingWidgetState {
+    pub fn blink(&mut self) {
+        self.key_detected = true;
+    }
+
+    pub fn update_time(&mut self, time: f32) {
+        self.time_since += time;
+    }
+
+    pub fn reset_time(&mut self) {
+        self.time_since = 0.0;
+    }
 }
 
 impl TrackingWidget {
-    pub fn show(self, ui: &mut egui::Ui) -> egui::Response {
+    pub fn show(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let height_size = FRAME_MAX_HEIGHT_PERCENT * ui.available_height();
         let width_size = FRAME_MAX_WIDTH_PERCENT * ui.available_width();
 
@@ -52,6 +73,17 @@ impl TrackingWidget {
             let frame_width = rect.width();
             let crosshair_half_size = BALL_RADIUS * frame_width / 2.0;
             let center = rect.center();
+
+            // Draw feedback text
+            if self.key_detected {
+                let text = String::from("CORRECT");
+                let text_pos = Pos2::new(center.x, center.y * 0.05);
+                let anchor = Align2::CENTER_TOP;
+                let font_id = FontId::proportional(20.0);
+                let text_color = Color32::WHITE;
+
+                painter.text(text_pos, anchor, text, font_id, text_color);
+            }
 
             let v_top_pos = Pos2::new(center.x, center.y - crosshair_half_size);
             let v_bottom_pos = Pos2::new(center.x, center.y + crosshair_half_size);

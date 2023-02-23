@@ -17,7 +17,7 @@ use crate::{
         DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
     },
     output::SessionOutput,
-    tracking_widget::TrackingWidget,
+    tracking_widget::{TrackingWidget, TrackingWidgetState},
     DEFAULT_OUTPUT_PATH,
 };
 
@@ -50,6 +50,7 @@ pub struct RunningState {
     pub input_mode: InputMode,
     pub session_output: SessionOutput,
     pub num_alarms_done: usize,
+    pub tracking_state: TrackingWidgetState,
 }
 
 impl RunningState {
@@ -66,6 +67,7 @@ impl RunningState {
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
             num_alarms_done: 0,
+            tracking_state: TrackingWidgetState::new(false, 0.0),
         }
     }
 }
@@ -126,8 +128,12 @@ impl DialsApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered(|ui| {
-                ui.add_space(window_height * 0.025);
-                TrackingWidget::new(running_state.ball.pos()).show(ui);
+                ui.add_space(window_height * 0.1);
+                TrackingWidget::new(
+                    running_state.ball.pos(),
+                    running_state.tracking_state.key_detected,
+                )
+                .show(ui);
             });
         });
     }
