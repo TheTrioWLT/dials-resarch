@@ -13,7 +13,7 @@ use std::{
 
 use app::{AppState, DialsApp};
 
-use crate::{ball::Ball, output::AlarmReaction};
+use crate::ball::Ball;
 use gilrs::{Event, Gilrs};
 
 mod app;
@@ -182,15 +182,6 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     // This is only called if joystick is the input mode otherwise goes to keyboard state input
     let mut joystick_input_axes = Vec2::default();
 
-    let total_num_alarms = {
-        let mut state = state.lock().unwrap();
-        if let AppState::Running(state) = &mut *state {
-            state.dial_rows.iter().map(|r| r.len()).sum()
-        } else {
-            panic!();
-        }
-    };
-
     // This allows us to request state transitions inside of the loop
     let mut new_appstate = None;
 
@@ -203,20 +194,17 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
         match &mut *state {
             AppState::Running(state) => {
-                // We need an extra vec here so that we can mutably borrow both `state.dial_rows` and
-                // `state.queued_alarms` at the same time
-                let mut alarms = Vec::new();
-
                 // Update all dials
                 for row in state.dial_rows.iter_mut() {
                     for dial in row.iter_mut() {
+                        // TODO FIXME
+                        /*
                         if let Some(alarm) = dial.update(delta_time) {
                             alarms.push(alarm);
                         }
+                         */
                     }
                 }
-
-                state.queued_alarms.extend(alarms);
 
                 // Takes the event detected by the joystick being used.
                 // Events detected can be 3 types of axes:
@@ -252,6 +240,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                 // Process key presses/alarm reactions
                 if let Some(key) = state.pressed_key {
+                    /*
                     if let Some(alarm) = state.queued_alarms.pop_front() {
                         let millis = alarm.time.elapsed().as_millis() as u32;
 
@@ -287,6 +276,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         last_dial_time = Instant::now();
                         is_done = true;
                     }
+                     */
 
                     state.pressed_key = None;
                 }
@@ -313,12 +303,34 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 /// to fix the validation
 fn validate_config(config: &mut config::Config) -> Result<()> {
     let alarm_names: Vec<_> = config.alarms.iter().map(|b| &b.name).collect();
+    let dial_names: Vec<_> = config
+        .dial_rows
+        .iter()
+        .map(|r| r.dials.iter().map(|d| &d.name))
+        .flatten()
+        .collect();
     // Loops through each trial and checks if its corresponding alarm exists in the map
     for trial in &config.trials {
         let alarm_name = &trial.alarm;
         if !alarm_names.contains(&alarm_name) {
             let message =
                 format!("Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}");
+
+            dialog_popup::show(
+                "Configuration Error",
+                "Invalid configuration",
+                message.clone(),
+            )
+            .unwrap();
+
+            bail!(message);
+        }
+
+        let dial_name = &trial.dial;
+
+        if !dial_names.contains(&dial_name) {
+            let message =
+                format!("Dial `{dial_name}` is missing!\nAvailable dials are: {dial_names:?}");
 
             dialog_popup::show(
                 "Configuration Error",

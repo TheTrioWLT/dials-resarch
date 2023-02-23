@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Mutex,
-};
+use std::{collections::HashMap, sync::Mutex};
 
 use eframe::{
     egui::{self, Frame, Key},
@@ -13,7 +10,7 @@ use crate::config::ConfigTrial;
 use crate::{
     ball::Ball,
     config::InputMode,
-    dial::{Dial, TriggeredAlarm},
+    dial::Dial,
     dial_widget::{
         DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
     },
@@ -49,7 +46,6 @@ pub struct RunningState {
     pub input_y: [f32; 2],
     /// If a key was recently pressed which is to be interpreted as an alarm reaction
     pub pressed_key: Option<char>,
-    pub queued_alarms: VecDeque<TriggeredAlarm>,
     pub last_keys: HashMap<Key, bool>,
     pub input_mode: InputMode,
     pub session_output: SessionOutput,
@@ -66,7 +62,6 @@ impl RunningState {
             input_x: [0.0, 0.0],
             input_y: [0.0, 0.0],
             pressed_key: None,
-            queued_alarms: VecDeque::new(),
             last_keys: HashMap::new(),
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),

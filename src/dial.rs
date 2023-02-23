@@ -1,7 +1,6 @@
-use crate::config::ConfigAlarm;
 use derive_new::new;
 use serde::{Deserialize, Serialize};
-use std::{collections::VecDeque, time::Instant};
+use std::collections::VecDeque;
 
 /// The value required to have the needle point to the very end of the dial
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
@@ -77,21 +76,6 @@ impl DialRange {
     }
 }
 
-/// Data associated with an alarm that has drifted out of range
-#[derive(Debug, Copy, Clone)]
-pub struct TriggeredAlarm {
-    // The row of the dial that caused this alarm
-    pub row_id: u32,
-    // The col of the dial that caused this alarm
-    pub col_id: u32,
-    /// The time at which this alarm was triggered
-    pub time: Instant,
-    /// The correct key with which to stop this alarm
-    pub correct_key: char,
-    /// The DialId of the dial that caused this alarm
-    pub id: DialId,
-}
-
 /// Represents a dial inside of our application "model"
 #[derive(Debug, Clone)]
 pub struct Dial {
@@ -164,10 +148,7 @@ impl Dial {
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
-    ///
-    /// If this dial has gone out of range since the last update, the dial's alarm sound is played
-    /// and `Some` is returned containing the relevant [`TriggeredAlarm`] data.
-    pub fn update(&mut self, delta_time: f32) -> Option<TriggeredAlarm> {
+    pub fn update(&mut self, delta_time: f32) {
         // Update the current time within the segment
         self.segment_time += delta_time;
 
@@ -199,7 +180,6 @@ impl Dial {
             None
         }
          */
-        None
     }
 
     /// The value of the dial, where it is currently pointing
@@ -217,18 +197,6 @@ impl Dial {
         // `row_id` and `col_id` are both u32's, therefore shifting the
         // row by 32 bits is guaranteed to give a perfect hash without collisions
         DialId((self.row_id as u64) << 32 | self.col_id as u64)
-    }
-}
-
-impl From<&Dial> for TriggeredAlarm {
-    fn from(d: &Dial) -> Self {
-        Self {
-            row_id: d.row_id,
-            col_id: d.col_id,
-            time: Instant::now(),
-            correct_key: ' ',
-            id: d.dial_id(),
-        }
     }
 }
 
