@@ -38,10 +38,6 @@ impl TrackingWidgetState {
     pub fn update_time(&mut self, time: f32) {
         self.time_since += time;
     }
-
-    pub fn reset_time(&mut self) {
-        self.time_since = 0.0;
-    }
 }
 
 impl TrackingWidget {

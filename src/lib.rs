@@ -298,7 +298,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 }
                 if state.tracking_state.time_since >= 0.7 {
                     state.tracking_state.key_detected = false;
-                    state.tracking_state.reset_time();
+                    state.tracking_state.time_since = 0.0;
                 }
 
                 // We have a delay before going to the end screen
