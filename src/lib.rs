@@ -306,8 +306,7 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
     let dial_names: Vec<_> = config
         .dial_rows
         .iter()
-        .map(|r| r.dials.iter().map(|d| &d.name))
-        .flatten()
+        .flat_map(|r| r.dials.iter().map(|d| &d.name))
         .collect();
     // Loops through each trial and checks if its corresponding alarm exists in the map
     for trial in &config.trials {
