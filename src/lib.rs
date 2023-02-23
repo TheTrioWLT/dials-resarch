@@ -313,25 +313,21 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 /// to fix the validation
 fn validate_config(config: &mut config::Config) -> Result<()> {
     let alarm_names: Vec<_> = config.alarms.iter().map(|b| &b.name).collect();
-    // Loops through each dial and checks if its corresponding alarm exists in the map
-    for row in &config.dial_rows {
-        for dial in &row.dials {
-            // TODO FIXME
-            let alarm_name = String::from("a1");
-            if !alarm_names.contains(&&alarm_name) {
-                let message = format!(
-                    "Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}"
-                );
+    // Loops through each trial and checks if its corresponding alarm exists in the map
+    for trial in &config.trials {
+        let alarm_name = &trial.alarm;
+        if !alarm_names.contains(&alarm_name) {
+            let message =
+                format!("Alarm `{alarm_name}` is missing!\nAvailable alarms are: {alarm_names:?}");
 
-                dialog_popup::show(
-                    "Configuration Error",
-                    "Invalid configuration",
-                    message.clone(),
-                )
-                .unwrap();
+            dialog_popup::show(
+                "Configuration Error",
+                "Invalid configuration",
+                message.clone(),
+            )
+            .unwrap();
 
-                bail!(message);
-            }
+            bail!(message);
         }
     }
 
