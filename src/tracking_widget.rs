@@ -24,6 +24,7 @@ const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 pub struct TrackingWidget {
     ball_pos: Pos2,
     key_detected: bool,
+    outline_color: Color32,
 }
 
 //Keeps track of when a key is pressed and the time it has been since.
@@ -32,6 +33,7 @@ pub struct TrackingWidget {
 pub struct TrackingWidgetState {
     pub key_detected: bool,
     time_since: f32,
+    pub outline_color: Color32,
 }
 
 impl TrackingWidgetState {
@@ -44,7 +46,17 @@ impl TrackingWidgetState {
         if self.time_since >= TEXT_FLASH_TIME {
             self.time_since = 0.0;
             self.key_detected = false;
+            self.outline_color = FRAME_BORDER_COLOR;
         }
+    }
+
+    pub fn set_outline(&mut self, color: Color32) {
+        //TODO: Make enum to only detect 3 potential colors
+        //Green
+        //Red
+        //Blue
+        //Default: White
+        self.outline_color = color;
     }
 }
 
@@ -67,7 +79,7 @@ impl TrackingWidget {
             let frame_shape = egui::epaint::RectShape::stroke(
                 rect,
                 egui::Rounding::none(),
-                egui::Stroke::new(FRAME_BORDER_WIDTH, FRAME_BORDER_COLOR),
+                egui::Stroke::new(FRAME_BORDER_WIDTH, self.outline_color),
             );
 
             painter.add(egui::Shape::Rect(frame_shape));

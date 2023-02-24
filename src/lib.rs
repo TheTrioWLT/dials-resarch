@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use audio::AudioManager;
 use dial::{Dial, DialRange};
-use eframe::epaint::Vec2;
+use eframe::epaint::{Color32, Vec2};
 use lazy_static::lazy_static;
 use output::SessionOutput;
 use std::{
@@ -278,6 +278,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                         //Tell the state that a key was pressed after an alarm went off.
                         state.tracking_state.blink();
+                        state.tracking_state.set_outline(Color32::GREEN);
                     }
 
                     if !is_done && state.num_alarms_done == total_num_alarms {

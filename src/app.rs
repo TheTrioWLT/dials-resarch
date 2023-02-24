@@ -67,7 +67,7 @@ impl RunningState {
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
             num_alarms_done: 0,
-            tracking_state: TrackingWidgetState::new(false, 0.0),
+            tracking_state: TrackingWidgetState::new(false, 0.0, Color32::WHITE),
         }
     }
 }
@@ -132,6 +132,7 @@ impl DialsApp {
                 TrackingWidget::new(
                     running_state.ball.pos(),
                     running_state.tracking_state.key_detected,
+                    running_state.tracking_state.outline_color,
                 )
                 .show(ui);
             });
