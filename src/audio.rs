@@ -53,14 +53,14 @@ impl AudioManager {
                         }
                     };
 
-                    log::info!("got sample, with alarm name {}", name);
+                    log::info!("got sample, with dial name {}", name);
                     // Starts playing the sample
                     sink.append(sample);
                     sink_map.insert(name, sink);
                     log::info!("returned from play_raw");
                 }
                 Ok(AudioCommand::Stop(name)) => {
-                    log::info!("Stopping alarm with name: {}", name);
+                    log::info!("Stopping alarm with dial name: {}", name);
                     // Drops the Sink
                     sink_map.remove(&name);
                 }

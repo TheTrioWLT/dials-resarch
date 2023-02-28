@@ -119,7 +119,7 @@ impl Default for Config {
                     correct_response_key: char::from_digit(i, 10).unwrap(),
                     dial: format!("d{i}"),
                     alarm: format!("a{i}"),
-                    alarm_time: (4 * i) as f32,
+                    alarm_time: 4.0,
                 })
                 .collect(),
             dial_rows: vec![

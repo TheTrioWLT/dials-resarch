@@ -38,8 +38,10 @@ impl Default for AppState {
 pub struct RunningState {
     pub dial_rows: Vec<Vec<Dial>>,
     pub trials: Vec<ConfigTrial>,
-    pub alarms: Vec<ConfigAlarm>,
+    pub alarms: HashMap<String, ConfigAlarm>,
     pub ball: Ball,
+    pub alarm_active: bool,
+    pub current_trial_number: usize,
     /// The input axes as stored as [-1.0 to 1.0, -1.0 to 1.0]: [x, y]
     pub input_axes: Vec2,
     /// The input axes as stored as [0.0 to 1.0, 0.0 to 1.0]
@@ -57,8 +59,10 @@ impl RunningState {
         Self {
             dial_rows: Vec::new(),
             trials: Vec::new(),
-            alarms: Vec::new(),
+            alarms: HashMap::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
+            alarm_active: false,
+            current_trial_number: 1,
             input_axes: Vec2::ZERO,
             input_x: [0.0, 0.0],
             input_y: [0.0, 0.0],

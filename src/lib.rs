@@ -14,6 +14,7 @@ use std::{
 use app::{AppState, DialsApp};
 
 use crate::ball::Ball;
+use crate::output::TrialReaction;
 use gilrs::{Event, Gilrs};
 
 mod app;
@@ -69,8 +70,11 @@ pub fn run() -> Result<()> {
     let audio = AudioManager::new()?;
 
     // Maps alarm names to alarm structs
-    let alarms: HashMap<&str, &config::ConfigAlarm> =
-        config.alarms.iter().map(|d| (d.name.as_str(), d)).collect();
+    let alarms: HashMap<String, config::ConfigAlarm> = config
+        .alarms
+        .drain(..)
+        .map(|d| (d.name.clone(), d))
+        .collect();
 
     // Loads the audio for each alarm
     for alarm in alarms.values() {
@@ -111,7 +115,7 @@ pub fn run() -> Result<()> {
             // because these had to come with defaults since it is static
             state.input_mode = config.input_mode;
             state.trials = config.trials;
-            state.alarms = config.alarms;
+            state.alarms = alarms;
             state.dial_rows = dial_rows;
             state.ball = Ball::new(
                 config.ball.random_direction_change_time_min,
@@ -158,10 +162,10 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
     let mut last_update = Instant::now();
 
-    // The time after the last dial alarm was acknowledged until
+    // The time after the last alarm was acknowledged until
     // the "Trial Complete!" splash screen is shown.
     const SPLASH_SCREEN_DELAY: Duration = Duration::from_secs(10);
-    // This is set to true when the state.num_dials_done is equal to the number of dials
+    // This is set to true when all of the trials have been completed
     let mut is_done = false;
 
     // The last Instant that a trial was run, so that the time can be measured relative to
@@ -196,30 +200,14 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
             AppState::Running(state) => {
                 // Update our current trial that we are running
                 if let Some(current_trial) = state.trials.first() {
-                    if last_trial_time.elapsed().as_secs_f32() > current_trial.alarm_time {
-                        let alarm = state
-                            .alarms
-                            .iter()
-                            .find(|a| a.name == current_trial.alarm)
-                            .unwrap();
+                    if !state.alarm_active
+                        && last_trial_time.elapsed().as_secs_f32() > current_trial.alarm_time
+                    {
+                        let alarm = state.alarms.get(&current_trial.alarm).unwrap();
 
-                        let dial = state
-                            .dial_rows
-                            .iter_mut()
-                            .flat_map(|r| r.iter_mut())
-                            .find(|d| d.name() == &current_trial.dial)
-                            .unwrap();
-
+                        state.alarm_active = true;
                         audio.play(&current_trial.dial, &alarm.audio_path).unwrap();
-
-                        dial.reset();
-
-                        last_trial_time = Instant::now();
-
-                        state.trials.remove(0);
                     }
-                } else {
-                    is_done = true;
                 }
 
                 // Update all dials
@@ -261,6 +249,48 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                 state.ball.update(input_axes, delta_time);
 
+                if let Some(key) = state.pressed_key.take() {
+                    if let Some(current_trial) = state.trials.first() {
+                        if last_trial_time.elapsed().as_secs_f32() > current_trial.alarm_time {
+                            let millis = last_trial_time.elapsed().as_millis() as u32;
+                            let current_rms_error = state.ball.current_rms_error();
+
+                            let reaction = TrialReaction::new(
+                                state.current_trial_number,
+                                millis,
+                                current_trial.correct_response_key == key,
+                                key,
+                                current_rms_error,
+                            );
+
+                            let dial = state
+                                .dial_rows
+                                .iter_mut()
+                                .flat_map(|r| r.iter_mut())
+                                .find(|d| d.name() == &current_trial.dial)
+                                .unwrap();
+
+                            audio.stop(&current_trial.dial);
+                            dial.reset();
+                            last_trial_time = Instant::now();
+                            state.trials.remove(0);
+                            state.current_trial_number += 1;
+                            state.session_output.add_reaction(reaction);
+                            state.alarm_active = false;
+
+                            if !is_done && state.trials.is_empty() {
+                                state.session_output.write_to_file();
+
+                                log::info!(
+                                    "wrote session output to file: {}",
+                                    state.session_output.output_path
+                                );
+                                is_done = true;
+                            }
+                        }
+                    }
+                }
+
                 // Process key presses/alarm reactions
                 if let Some(key) = state.pressed_key {
                     /*
@@ -288,17 +318,6 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         state.num_alarms_done += 1;
                     }
 
-                    if !is_done && state.num_alarms_done == total_num_alarms {
-                        state.session_output.write_to_file();
-
-                        log::info!(
-                            "wrote session output to file: {}",
-                            state.session_output.output_path
-                        );
-
-                        last_dial_time = Instant::now();
-                        is_done = true;
-                    }
                      */
 
                     state.pressed_key = None;

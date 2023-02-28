@@ -1,4 +1,3 @@
-use crate::config::ConfigTrial;
 use derive_new::new;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
