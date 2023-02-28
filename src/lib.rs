@@ -278,7 +278,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         state.num_alarms_done += 1;
 
                         //Tell the state that a key was pressed after an alarm went off.
-                        state.tracking_state.blink(Some(BoxColor::Green));
+                        state.tracking_state.blink(None, Some(BoxColor::Green));
                     }
 
                     if !is_done && state.num_alarms_done == total_num_alarms {

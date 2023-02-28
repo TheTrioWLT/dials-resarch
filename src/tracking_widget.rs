@@ -42,6 +42,7 @@ impl From<BoxColor> for Color32 {
 pub struct TrackingWidget {
     ball_pos: Pos2,
     key_detected: bool,
+    feedback_text: Option<String>,
     outline_color: Color32,
 }
 
@@ -49,14 +50,16 @@ pub struct TrackingWidget {
 #[derive(new)]
 pub struct TrackingWidgetState {
     pub key_detected: bool,
+    pub feedback_text: Option<String>,
     time_since: f32,
     pub outline_color: Color32,
 }
 
 impl TrackingWidgetState {
-    pub fn blink(&mut self, respond_color: Option<BoxColor>) {
+    pub fn blink(&mut self, feedback_text: Option<String>, respond_color: Option<BoxColor>) {
         self.key_detected = true;
         self.outline_color = respond_color.map_or(FRAME_BORDER_COLOR, |c| c.into());
+        self.feedback_text = feedback_text;
     }
 
     //Keeps track of time since key detected and resets everything after the limit has been reached.
@@ -104,7 +107,7 @@ impl TrackingWidget {
 
             // Draw feedback text
             if self.key_detected {
-                let text = String::from("CORRECT");
+                let text = self.feedback_text.clone().map_or("".to_string(), |s| s);
                 let text_pos = Pos2::new(center.x, center.y * 0.05);
                 let anchor = Align2::CENTER_TOP;
                 let font_id = FontId::proportional(20.0);
