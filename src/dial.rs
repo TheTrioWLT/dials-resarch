@@ -13,6 +13,9 @@ const AFTER_RESET_PATH_TIME: usize = 3600;
 /// The number of seconds per path segment for after the dial has been reset. This determines the number
 /// of segments
 const AFTER_RESET_SECONDS_PER_SEGMENT: f32 = 2.0;
+/// The number of path segments that should be generated after the dial is reset for the final time
+const AFTER_RESET_PATH_SEGMENTS: usize =
+    (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
 
 /// A "range" which a dial can be inside or out of. This is used to keep track of if the dial is
 /// "in range" so that we know when to sound an alarm.
@@ -87,6 +90,8 @@ pub struct Dial {
     in_range: DialRange,
     // This dial's random paths that it needs to traverse in order to drift up and down
     path: VecDeque<PathSegment>,
+    // If this dial is randomly wandering in its range or if it is scheduled to drift out
+    is_wandering: bool,
     // The current time into the current path segment
     segment_time: f32,
     // The current direction of travel in the path segment.
@@ -96,39 +101,25 @@ pub struct Dial {
 impl Dial {
     /// Creates a new Dial with the provided name and in-range
     pub fn new(name: String, in_range: DialRange) -> Self {
-        // We will wander before our trial time
-        let wander_path_segments =
-            (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
-
         Self {
             value: in_range.middle(),
             name,
             in_range,
-            path: generate_random_dial_path(
-                &in_range,
-                AFTER_RESET_PATH_TIME as f32,
-                wander_path_segments,
-                wander_path_segments,
-            ),
+            path: generate_random_dial_path(&in_range, in_range.middle(), None),
+            is_wandering: true,
             segment_time: 0.0,
             travel_direction: 1.0,
         }
     }
 
     /// Resets the dial to the middle of the range and continues "wandering"
-    pub fn reset(&mut self) {
-        self.value = self.in_range.middle();
-
-        let wander_path_segments =
-            (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
-
+    /// If a drift out time is specified, that is used to generate the path, if not the dial will
+    /// drift "forever"
+    pub fn reset(&mut self, drift_out_time: Option<f32>) {
         self.segment_time = 0.0;
-        self.path = generate_random_dial_path(
-            &self.in_range,
-            AFTER_RESET_PATH_TIME as f32,
-            wander_path_segments,
-            wander_path_segments,
-        );
+        self.is_wandering = drift_out_time.is_none();
+        self.path =
+            generate_random_dial_path(&self.in_range, self.in_range.middle(), drift_out_time);
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
@@ -165,6 +156,11 @@ impl Dial {
     // The unique name of this dial
     pub fn name(&self) -> &String {
         &self.name
+    }
+
+    // If the dial is just wandering or if it was told to drift out yet
+    pub fn is_wandering(&self) -> bool {
+        self.is_wandering
     }
 }
 
@@ -209,15 +205,20 @@ impl PathSegment {
 /// the given range.
 fn generate_random_dial_path(
     range: &DialRange,
-    time_to_drift: f32,
-    max_path_segments: usize,
-    min_path_segments: usize,
+    start_value: f32,
+    drift_out_time: Option<f32>,
 ) -> VecDeque<PathSegment> {
     let num: f32 = rand::random();
-    let num_segments = ((max_path_segments as f32 * num) as usize).max(min_path_segments);
 
+    let num_segments = if drift_out_time.is_some() {
+        ((MAX_PATH_SEGMENTS as f32 * num) as usize).max(MIN_PATH_SEGMENTS)
+    } else {
+        AFTER_RESET_PATH_SEGMENTS
+    };
+
+    let time_to_drift = drift_out_time.unwrap_or(AFTER_RESET_PATH_TIME as f32);
     let mut segments = VecDeque::with_capacity(num_segments);
-    let mut last_value = range.middle();
+    let mut last_value = start_value;
 
     let duration = time_to_drift / num_segments as f32;
 
@@ -233,6 +234,18 @@ fn generate_random_dial_path(
         segments.push_back(segment);
 
         last_value = next_value;
+    }
+
+    if drift_out_time.is_some() {
+        let end_value = range.slightly_out(last_value);
+
+        let last_segment = PathSegment {
+            start: last_value,
+            end: end_value,
+            duration,
+        };
+
+        segments.push_back(last_segment);
     }
 
     segments

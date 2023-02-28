@@ -200,6 +200,17 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
             AppState::Running(state) => {
                 // Update our current trial that we are running
                 if let Some(current_trial) = state.trials.first() {
+                    let dial = state
+                        .dial_rows
+                        .iter_mut()
+                        .flat_map(|r| r.iter_mut())
+                        .find(|d| d.name() == &current_trial.dial)
+                        .unwrap();
+
+                    if dial.is_wandering() {
+                        dial.reset(Some(current_trial.alarm_time));
+                    }
+
                     if !state.alarm_active
                         && last_trial_time.elapsed().as_secs_f32() > current_trial.alarm_time
                     {
@@ -271,7 +282,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                                 .unwrap();
 
                             audio.stop(&current_trial.dial);
-                            dial.reset();
+                            dial.reset(None);
                             last_trial_time = Instant::now();
                             state.trials.remove(0);
                             state.current_trial_number += 1;
@@ -289,38 +300,6 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                             }
                         }
                     }
-                }
-
-                // Process key presses/alarm reactions
-                if let Some(key) = state.pressed_key {
-                    /*
-                    if let Some(alarm) = state.queued_alarms.pop_front() {
-                        let millis = alarm.time.elapsed().as_millis() as u32;
-
-                        let current_rms_error = state.ball.current_rms_error();
-                        let dial =
-                            &mut state.dial_rows[alarm.row_id as usize][alarm.col_id as usize];
-
-                        // TODO FIXME
-                        let reaction = AlarmReaction::new(
-                            String::from("placeholder"),
-                            millis,
-                            alarm.correct_key == key,
-                            key,
-                            current_rms_error,
-                        );
-
-                        dial.reset();
-                        audio.stop(alarm.id);
-
-                        state.session_output.add_reaction(reaction);
-
-                        state.num_alarms_done += 1;
-                    }
-
-                     */
-
-                    state.pressed_key = None;
                 }
 
                 // We have a delay before going to the end screen
