@@ -82,101 +82,67 @@ impl DialRange {
 pub struct Dial {
     // The current value of the dial, which is where the needle is pointing
     value: f32,
-    // The row this dial is located in
-    row_id: u32,
-    // The column this dial is located at
-    col_id: u32,
+    // The name of this dial
+    name: String,
     // The "in-range" for this dial: where it is supposed to be, and if it exits, the alarm sounds
     in_range: DialRange,
     // This dial's random paths that it needs to traverse in order to drift up and down
-    // These are seperated per trial
-    trial_paths: VecDeque<VecDeque<PathSegment>>,
+    path: VecDeque<PathSegment>,
     // The current time into the current path segment
     segment_time: f32,
     // The current direction of travel in the path segment.
     travel_direction: f32,
-    // If the dial has now drifted out of range and needs to be handled
-    out_of_range: bool,
-}
-
-/// A dial's unique id
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DialId(u64);
-
-impl std::fmt::Display for DialId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // format in hex since we do major bit shifting so the col and row are easily visible
-        f.write_fmt(format_args!("{:X}", self.0))
-    }
 }
 
 impl Dial {
-    /// Creates a new Dial with the provided row, column, in-range, alarm values, and the time_to_drift
-    /// which represents how long until the dial should go out of its in-range
-    pub fn new(row_id: u32, col_id: u32, in_range: DialRange, trial_times: Vec<f32>) -> Self {
-        let mut trial_paths = VecDeque::new();
-
-        for trial_time in trial_times {
-            let random_path = generate_random_dial_path(
-                &in_range,
-                trial_time,
-                true,
-                MAX_PATH_SEGMENTS,
-                MIN_PATH_SEGMENTS,
-            );
-
-            trial_paths.push_back(random_path);
-        }
+    /// Creates a new Dial with the provided name and in-range
+    pub fn new(name: String, in_range: DialRange) -> Self {
+        // We will wander before our trial time
+        let wander_path_segments =
+            (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
 
         Self {
             value: in_range.middle(),
-            row_id,
-            col_id,
+            name,
             in_range,
-            trial_paths,
+            path: generate_random_dial_path(
+                &in_range,
+                AFTER_RESET_PATH_TIME as f32,
+                false,
+                wander_path_segments,
+                wander_path_segments,
+            ),
             segment_time: 0.0,
             travel_direction: 1.0,
-            out_of_range: false,
         }
     }
 
-    /// Resets the dial to the middle of the range until the program is over if there are no more
-    /// trials to run, or starts the next trial.
+    /// Resets the dial to the middle of the range until the program is over. This means there are no
+    /// more trials that use this dial.
     pub fn reset(&mut self) {
-        self.trial_paths.pop_front();
-
-        if self.trial_paths.is_empty() {
-            self.value = self.in_range.middle();
-        }
+        self.path.clear();
+        self.value = self.in_range.middle();
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
     /// Returns a bool stating whether or not the dial has drifted out of range this update.
     /// It only returns true once, and then it must be reset
-    pub fn update(&mut self, delta_time: f32) -> bool {
+    pub fn update(&mut self, delta_time: f32) {
         // Update the current time within the segment
         self.segment_time += delta_time;
 
-        // If we haven't run out of path segments yet
-        if let Some(path) = self.trial_paths.front_mut() {
-            if let Some(current) = path.front() {
-                // If we are still in our current path segment
-                if current.in_segment(self.segment_time) {
-                    // Calculate our current position in the path at the current time
-                    self.value = current.value_at_time(self.segment_time);
-                } else {
-                    // Move onto the next path segment
-                    self.travel_direction = current.travel_direction();
-                    path.pop_front();
-                    self.segment_time = 0.0;
-                }
+        if let Some(current) = self.path.front() {
+            // If we are still in our current path segment
+            if current.in_segment(self.segment_time) {
+                // Calculate our current position in the path at the current time
+                self.value = current.value_at_time(self.segment_time);
+            } else {
+                // Move onto the next path segment
+                self.travel_direction = current.travel_direction();
+                self.path.pop_front();
+                self.segment_time = 0.0;
             }
-        } else {
-            // Keep drifting
-            self.value += self.travel_direction * 20.0 * delta_time;
         }
-
-        !self.out_of_range && !self.in_range.contains(self.value)
     }
 
     /// The value of the dial, where it is currently pointing
@@ -189,11 +155,9 @@ impl Dial {
         self.in_range
     }
 
-    /// A unique id for this dial
-    fn dial_id(&self) -> DialId {
-        // `row_id` and `col_id` are both u32's, therefore shifting the
-        // row by 32 bits is guaranteed to give a perfect hash without collisions
-        DialId((self.row_id as u64) << 32 | self.col_id as u64)
+    // The unique name of this dial
+    pub fn name(&self) -> &String {
+        &self.name
     }
 }
 

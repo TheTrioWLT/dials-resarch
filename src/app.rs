@@ -6,7 +6,7 @@ use eframe::{
     epaint::Color32,
 };
 
-use crate::config::ConfigTrial;
+use crate::config::{ConfigAlarm, ConfigTrial};
 use crate::{
     ball::Ball,
     config::InputMode,
@@ -38,6 +38,7 @@ impl Default for AppState {
 pub struct RunningState {
     pub dial_rows: Vec<Vec<Dial>>,
     pub trials: Vec<ConfigTrial>,
+    pub alarms: Vec<ConfigAlarm>,
     pub ball: Ball,
     /// The input axes as stored as [-1.0 to 1.0, -1.0 to 1.0]: [x, y]
     pub input_axes: Vec2,
@@ -49,7 +50,6 @@ pub struct RunningState {
     pub last_keys: HashMap<Key, bool>,
     pub input_mode: InputMode,
     pub session_output: SessionOutput,
-    pub num_alarms_done: usize,
 }
 
 impl RunningState {
@@ -57,6 +57,7 @@ impl RunningState {
         Self {
             dial_rows: Vec::new(),
             trials: Vec::new(),
+            alarms: Vec::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
             input_axes: Vec2::ZERO,
             input_x: [0.0, 0.0],
@@ -65,7 +66,6 @@ impl RunningState {
             last_keys: HashMap::new(),
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
-            num_alarms_done: 0,
         }
     }
 }

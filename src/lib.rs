@@ -86,33 +86,17 @@ pub fn run() -> Result<()> {
         }
     }
 
-    let mut dial_to_trials: HashMap<String, Vec<f32>> = HashMap::new();
-
-    for trial in &config.trials {
-        match dial_to_trials.entry(trial.dial.clone()) {
-            std::collections::hash_map::Entry::Occupied(mut e) => {
-                e.get_mut().push(trial.alarm_time);
-            }
-            std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(vec![trial.alarm_time]);
-            }
-        }
-    }
-
     // Generates a Vec<Vec<Dial>> that represents rows of dials, from the configuration
-    let dial_rows: Vec<_> = (0..)
+    let dial_rows: Vec<_> =
         // Loop through each row
-        .zip(config.dial_rows.iter())
-        .map(|(row_id, row)| {
-            (0..)
+        config.dial_rows.iter()
+        .map(|row| {
                 // Loop through each dial in the row
-                .zip(row.dials.iter())
-                .map(|(col_id, dial)| {
+                row.dials.iter()
+                .map(|dial| {
                     Dial::new(
-                        row_id,
-                        col_id,
+                        dial.name.clone(),
                         DialRange::new(dial.range_start, dial.range_end),
-                        dial_to_trials.remove(&dial.name).unwrap(),
                     )
                 })
                 .collect()
@@ -127,6 +111,7 @@ pub fn run() -> Result<()> {
             // because these had to come with defaults since it is static
             state.input_mode = config.input_mode;
             state.trials = config.trials;
+            state.alarms = config.alarms;
             state.dial_rows = dial_rows;
             state.ball = Ball::new(
                 config.ball.random_direction_change_time_min,
@@ -178,9 +163,10 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     const SPLASH_SCREEN_DELAY: Duration = Duration::from_secs(10);
     // This is set to true when the state.num_dials_done is equal to the number of dials
     let mut is_done = false;
-    // Represents the instant where the last dial alarm was acknowledged. The initial
-    // value here is thrown away, and re-set when the state.num_alarms_done is max.
-    let mut last_dial_time = Instant::now();
+
+    // The last Instant that a trial was run, so that the time can be measured relative to
+    // trial activations.
+    let mut last_trial_time = Instant::now();
 
     // Outputs the type of device that is detected by Gilrs.
     // If information is not recognized by library then it will output the default OS provided name
@@ -208,15 +194,38 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
         match &mut *state {
             AppState::Running(state) => {
+                // Update our current trial that we are running
+                if let Some(current_trial) = state.trials.first() {
+                    if last_trial_time.elapsed().as_secs_f32() > current_trial.alarm_time {
+                        let alarm = state
+                            .alarms
+                            .iter()
+                            .find(|a| a.name == current_trial.alarm)
+                            .unwrap();
+
+                        let dial = state
+                            .dial_rows
+                            .iter_mut()
+                            .flat_map(|r| r.iter_mut())
+                            .find(|d| d.name() == &current_trial.dial)
+                            .unwrap();
+
+                        audio.play(&current_trial.dial, &alarm.audio_path).unwrap();
+
+                        dial.reset();
+
+                        last_trial_time = Instant::now();
+
+                        state.trials.remove(0);
+                    }
+                } else {
+                    is_done = true;
+                }
+
                 // Update all dials
                 for row in state.dial_rows.iter_mut() {
                     for dial in row.iter_mut() {
-                        // TODO FIXME
-                        /*
-                        if let Some(alarm) = dial.update(delta_time) {
-                            alarms.push(alarm);
-                        }
-                         */
+                        dial.update(delta_time);
                     }
                 }
 
@@ -296,7 +305,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 }
 
                 // We have a delay before going to the end screen
-                if is_done && last_dial_time.elapsed() >= SPLASH_SCREEN_DELAY {
+                if is_done && last_trial_time.elapsed() >= SPLASH_SCREEN_DELAY {
                     // Change the state to Done and therefore show the splash screen
                     new_appstate = Some(AppState::Done);
                 }
