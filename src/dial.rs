@@ -1,3 +1,4 @@
+use crate::config::ConfigTrial;
 use derive_new::new;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -87,12 +88,15 @@ pub struct Dial {
     col_id: u32,
     // The "in-range" for this dial: where it is supposed to be, and if it exits, the alarm sounds
     in_range: DialRange,
-    // This dial's random path that it needs to traverse in order to drift up and down
-    random_path: VecDeque<PathSegment>,
+    // This dial's random paths that it needs to traverse in order to drift up and down
+    // These are seperated per trial
+    trial_paths: VecDeque<VecDeque<PathSegment>>,
     // The current time into the current path segment
     segment_time: f32,
     // The current direction of travel in the path segment.
     travel_direction: f32,
+    // If the dial has now drifted out of range and needs to be handled
+    out_of_range: bool,
 }
 
 /// A dial's unique id
@@ -109,77 +113,70 @@ impl std::fmt::Display for DialId {
 impl Dial {
     /// Creates a new Dial with the provided row, column, in-range, alarm values, and the time_to_drift
     /// which represents how long until the dial should go out of its in-range
-    pub fn new(row_id: u32, col_id: u32, in_range: DialRange) -> Self {
-        /*
-        let random_path = generate_random_dial_path(
-            &in_range,
-            time_to_drift,
-            true,
-            MAX_PATH_SEGMENTS,
-            MIN_PATH_SEGMENTS,
-        );
-         */
-        let random_path = VecDeque::new();
+    pub fn new(row_id: u32, col_id: u32, in_range: DialRange, trial_times: Vec<f32>) -> Self {
+        let mut trial_paths = VecDeque::new();
+
+        for trial_time in trial_times {
+            let random_path = generate_random_dial_path(
+                &in_range,
+                trial_time,
+                true,
+                MAX_PATH_SEGMENTS,
+                MIN_PATH_SEGMENTS,
+            );
+
+            trial_paths.push_back(random_path);
+        }
 
         Self {
             value: in_range.middle(),
             row_id,
             col_id,
             in_range,
-            random_path,
+            trial_paths,
             segment_time: 0.0,
             travel_direction: 1.0,
+            out_of_range: false,
         }
     }
 
-    /// Resets the dial so that it can drift until the trial is over, but never goes out of
-    /// its in-range again
+    /// Resets the dial to the middle of the range until the program is over if there are no more
+    /// trials to run, or starts the next trial.
     pub fn reset(&mut self) {
-        let path_segments =
-            (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
+        self.trial_paths.pop_front();
 
-        self.random_path = generate_random_dial_path(
-            &self.in_range,
-            AFTER_RESET_PATH_TIME as f32,
-            false,
-            path_segments,
-            path_segments,
-        );
+        if self.trial_paths.is_empty() {
+            self.value = self.in_range.middle();
+        }
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
-    pub fn update(&mut self, delta_time: f32) {
+    /// Returns a bool stating whether or not the dial has drifted out of range this update.
+    /// It only returns true once, and then it must be reset
+    pub fn update(&mut self, delta_time: f32) -> bool {
         // Update the current time within the segment
         self.segment_time += delta_time;
 
         // If we haven't run out of path segments yet
-        if let Some(current) = self.random_path.front() {
-            // If we are still in our current path segment
-            if current.in_segment(self.segment_time) {
-                // Calculate our current position in the path at the current time
-                self.value = current.value_at_time(self.segment_time);
-            } else {
-                // Move onto the next path segment
-                self.travel_direction = current.travel_direction();
-                self.random_path.pop_front();
-                self.segment_time = 0.0;
+        if let Some(path) = self.trial_paths.front_mut() {
+            if let Some(current) = path.front() {
+                // If we are still in our current path segment
+                if current.in_segment(self.segment_time) {
+                    // Calculate our current position in the path at the current time
+                    self.value = current.value_at_time(self.segment_time);
+                } else {
+                    // Move onto the next path segment
+                    self.travel_direction = current.travel_direction();
+                    path.pop_front();
+                    self.segment_time = 0.0;
+                }
             }
         } else {
             // Keep drifting
             self.value += self.travel_direction * 20.0 * delta_time;
         }
 
-        /*
-        if !self.alarm_fired && !self.in_range.contains(self.value) {
-            self.alarm_fired = true;
-            // we preloaded each audio file so this shouldn't fail, and if it does we don't care
-            let _ = audio.play(self.dial_id(), &self.alarm_path);
-
-            Some(TriggeredAlarm::from(&*self))
-        } else {
-            None
-        }
-         */
+        !self.out_of_range && !self.in_range.contains(self.value)
     }
 
     /// The value of the dial, where it is currently pointing

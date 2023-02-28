@@ -86,6 +86,19 @@ pub fn run() -> Result<()> {
         }
     }
 
+    let mut dial_to_trials: HashMap<String, Vec<f32>> = HashMap::new();
+
+    for trial in &config.trials {
+        match dial_to_trials.entry(trial.dial.clone()) {
+            std::collections::hash_map::Entry::Occupied(mut e) => {
+                e.get_mut().push(trial.alarm_time);
+            }
+            std::collections::hash_map::Entry::Vacant(e) => {
+                e.insert(vec![trial.alarm_time]);
+            }
+        }
+    }
+
     // Generates a Vec<Vec<Dial>> that represents rows of dials, from the configuration
     let dial_rows: Vec<_> = (0..)
         // Loop through each row
@@ -99,6 +112,7 @@ pub fn run() -> Result<()> {
                         row_id,
                         col_id,
                         DialRange::new(dial.range_start, dial.range_end),
+                        dial_to_trials.remove(&dial.name).unwrap(),
                     )
                 })
                 .collect()
