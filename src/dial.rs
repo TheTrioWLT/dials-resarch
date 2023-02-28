@@ -107,7 +107,6 @@ impl Dial {
             path: generate_random_dial_path(
                 &in_range,
                 AFTER_RESET_PATH_TIME as f32,
-                false,
                 wander_path_segments,
                 wander_path_segments,
             ),
@@ -116,11 +115,20 @@ impl Dial {
         }
     }
 
-    /// Resets the dial to the middle of the range until the program is over. This means there are no
-    /// more trials that use this dial.
+    /// Resets the dial to the middle of the range and continues "wandering"
     pub fn reset(&mut self) {
-        self.path.clear();
         self.value = self.in_range.middle();
+
+        let wander_path_segments =
+            (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
+
+        self.segment_time = 0.0;
+        self.path = generate_random_dial_path(
+            &self.in_range,
+            AFTER_RESET_PATH_TIME as f32,
+            wander_path_segments,
+            wander_path_segments,
+        );
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
@@ -202,7 +210,6 @@ impl PathSegment {
 fn generate_random_dial_path(
     range: &DialRange,
     time_to_drift: f32,
-    drift_out: bool,
     max_path_segments: usize,
     min_path_segments: usize,
 ) -> VecDeque<PathSegment> {
@@ -210,7 +217,7 @@ fn generate_random_dial_path(
     let num_segments = ((max_path_segments as f32 * num) as usize).max(min_path_segments);
 
     let mut segments = VecDeque::with_capacity(num_segments);
-    let mut last_value = range.random_in();
+    let mut last_value = range.middle();
 
     let duration = time_to_drift / num_segments as f32;
 
@@ -226,18 +233,6 @@ fn generate_random_dial_path(
         segments.push_back(segment);
 
         last_value = next_value;
-    }
-
-    if drift_out {
-        let end_value = range.slightly_out(last_value);
-
-        let last_segment = PathSegment {
-            start: last_value,
-            end: end_value,
-            duration,
-        };
-
-        segments.push_back(last_segment);
     }
 
     segments
