@@ -20,6 +20,24 @@ pub const TEXT_FLASH_TIME: f32 = 0.8;
 
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
+//The three possible colors for the Box to have, excluding the default WHITE.
+pub enum BoxColor {
+    Green,
+    Red,
+    Blue,
+}
+
+impl From<BoxColor> for Color32 {
+    fn from(value: BoxColor) -> Self {
+        match value {
+            BoxColor::Red => Color32::RED,
+            BoxColor::Green => Color32::GREEN,
+            BoxColor::Blue => Color32::BLUE,
+        }
+    }
+}
+
+//Keeps track of when a key is pressed and the time it has been since.
 #[derive(new)]
 pub struct TrackingWidget {
     ball_pos: Pos2,
@@ -27,7 +45,6 @@ pub struct TrackingWidget {
     outline_color: Color32,
 }
 
-//Keeps track of when a key is pressed and the time it has been since.
 //This structure communicates with AppState in order to get the information needed.
 #[derive(new)]
 pub struct TrackingWidgetState {
@@ -37,26 +54,21 @@ pub struct TrackingWidgetState {
 }
 
 impl TrackingWidgetState {
-    pub fn blink(&mut self) {
+    pub fn blink(&mut self, respond_color: Option<BoxColor>) {
         self.key_detected = true;
+        self.outline_color = respond_color.map_or(FRAME_BORDER_COLOR, |c| c.into());
     }
 
-    pub fn update_time(&mut self, time: f32) {
-        self.time_since += time;
-        if self.time_since >= TEXT_FLASH_TIME {
-            self.time_since = 0.0;
-            self.key_detected = false;
-            self.outline_color = FRAME_BORDER_COLOR;
+    //Keeps track of time since key detected and resets everything after the limit has been reached.
+    pub fn update(&mut self, time: f32) {
+        if self.key_detected {
+            self.time_since += time;
+            if self.time_since >= TEXT_FLASH_TIME {
+                self.time_since = 0.0;
+                self.key_detected = false;
+                self.outline_color = FRAME_BORDER_COLOR;
+            }
         }
-    }
-
-    pub fn set_outline(&mut self, color: Color32) {
-        //TODO: Make enum to only detect 3 potential colors
-        //Green
-        //Red
-        //Blue
-        //Default: White
-        self.outline_color = color;
     }
 }
 

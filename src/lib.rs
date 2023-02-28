@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use audio::AudioManager;
 use dial::{Dial, DialRange};
-use eframe::epaint::{Color32, Vec2};
+use eframe::epaint::Vec2;
 use lazy_static::lazy_static;
 use output::SessionOutput;
 use std::{
@@ -10,6 +10,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
+use tracking_widget::BoxColor;
 
 use app::{AppState, DialsApp};
 
@@ -277,8 +278,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                         state.num_alarms_done += 1;
 
                         //Tell the state that a key was pressed after an alarm went off.
-                        state.tracking_state.blink();
-                        state.tracking_state.set_outline(Color32::GREEN);
+                        state.tracking_state.blink(Some(BoxColor::Green));
                     }
 
                     if !is_done && state.num_alarms_done == total_num_alarms {
@@ -297,9 +297,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 }
 
                 //If key detected then start running time
-                if state.tracking_state.key_detected {
-                    state.tracking_state.update_time(delta_time);
-                }
+                state.tracking_state.update(delta_time);
                 // We have a delay before going to the end screen
                 if is_done && last_dial_time.elapsed() >= SPLASH_SCREEN_DELAY {
                     // Change the state to Done and therefore show the splash screen
