@@ -225,16 +225,7 @@ fn generate_random_dial_path(
     if let Some(drift_out_time) = drift_out_time {
         let mut time_remaining = drift_out_time;
         let mut start = range.random_in();
-        let mut end = range.end_closer_to_point(start);
-        let end_out = range.slightly_out(start);
-
-        let first_segment = PathSegment {
-            start: end,
-            end: end_out,
-            duration: 0.5,
-        };
-
-        segments.push_back(first_segment);
+        let mut end = range.slightly_out(start);
 
         while time_remaining > MAX_SEGMENT_TIME {
             let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
