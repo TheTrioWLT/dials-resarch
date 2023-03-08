@@ -1,21 +1,16 @@
 use derive_new::new;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
 /// The value required to have the needle point to the very end of the dial
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
-/// The maximum number of segments in a random path that is traversed by the dial in its wandering
-const MAX_PATH_SEGMENTS: usize = 8;
-/// The minimum number of segments in a random path that is traversed by the dial in its wandering
-const MIN_PATH_SEGMENTS: usize = 4;
-/// The number of seconds that a path for the dial should be generated for, for after the dial is reset
-const AFTER_RESET_PATH_TIME: usize = 3600;
-/// The number of seconds per path segment for after the dial has been reset. This determines the number
-/// of segments
-const AFTER_RESET_SECONDS_PER_SEGMENT: f32 = 2.0;
+/// The average number of seconds per segment that should be used when the dial has a time to drift out
+const SECONDS_PER_SEGMENT: f32 = 2.0;
+/// The random deviation allowed in the seconds per segment
+const SECONDS_PER_SEGMENT_DEVIATION: f32 = 1.0;
 /// The number of path segments that should be generated after the dial is reset for the final time
-const AFTER_RESET_PATH_SEGMENTS: usize =
-    (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
+const AFTER_RESET_PATH_SEGMENTS: usize = 4000;
 
 /// A "range" which a dial can be inside or out of. This is used to keep track of if the dial is
 /// "in range" so that we know when to sound an alarm.
@@ -77,6 +72,17 @@ impl DialRange {
             self.end + amount
         }
     }
+
+    /// Returns either self.start or self.end depending on which is closer to the provided value
+    pub fn end_closer_to_point(&self, value: f32) -> f32 {
+        let halfway = (self.end - self.start) / 2.0 + self.start;
+
+        if value <= halfway {
+            self.start
+        } else {
+            self.end
+        }
+    }
 }
 
 /// Represents a dial inside of our application "model"
@@ -118,8 +124,11 @@ impl Dial {
     pub fn reset(&mut self, drift_out_time: Option<f32>) {
         self.segment_time = 0.0;
         self.is_wandering = drift_out_time.is_none();
-        self.path =
-            generate_random_dial_path(&self.in_range, self.in_range.middle(), drift_out_time);
+        self.path = if self.is_wandering {
+            generate_random_dial_path(&self.in_range, self.in_range.middle(), drift_out_time)
+        } else {
+            generate_random_dial_path(&self.in_range, self.value, drift_out_time)
+        }
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
@@ -208,44 +217,66 @@ fn generate_random_dial_path(
     start_value: f32,
     drift_out_time: Option<f32>,
 ) -> VecDeque<PathSegment> {
-    let num: f32 = rand::random();
+    const MIN_SEGMENT_TIME: f32 = SECONDS_PER_SEGMENT - SECONDS_PER_SEGMENT_DEVIATION;
+    const MAX_SEGMENT_TIME: f32 = SECONDS_PER_SEGMENT + SECONDS_PER_SEGMENT_DEVIATION;
 
-    let num_segments = if drift_out_time.is_some() {
-        ((MAX_PATH_SEGMENTS as f32 * num) as usize).max(MIN_PATH_SEGMENTS)
+    let mut segments = VecDeque::new();
+
+    if let Some(drift_out_time) = drift_out_time {
+        let mut time_remaining = drift_out_time;
+        let mut start = range.random_in();
+        let mut end = range.end_closer_to_point(start);
+        let end_out = range.slightly_out(start);
+
+        let first_segment = PathSegment {
+            start: end,
+            end: end_out,
+            duration: 0.5,
+        };
+
+        segments.push_back(first_segment);
+
+        while time_remaining > MAX_SEGMENT_TIME {
+            let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
+
+            let segment = PathSegment {
+                start,
+                end,
+                duration,
+            };
+
+            segments.push_front(segment);
+
+            let last_end = end;
+            end = start;
+            start = range.random_near(last_end);
+            time_remaining -= duration;
+        }
+
+        let final_segment = PathSegment {
+            start: start_value,
+            end,
+            duration: time_remaining,
+        };
+
+        segments.push_front(final_segment);
     } else {
-        AFTER_RESET_PATH_SEGMENTS
-    };
+        let mut last_value = start_value;
 
-    let time_to_drift = drift_out_time.unwrap_or(AFTER_RESET_PATH_TIME as f32);
-    let mut segments = VecDeque::with_capacity(num_segments);
-    let mut last_value = start_value;
+        for _ in 0..AFTER_RESET_PATH_SEGMENTS {
+            let next_value = range.random_near(last_value);
+            let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
 
-    let duration = time_to_drift / num_segments as f32;
+            let segment = PathSegment {
+                start: last_value,
+                end: next_value,
+                duration,
+            };
 
-    for _ in 0..(num_segments - 1) {
-        let next_value = range.random_near(last_value);
+            segments.push_back(segment);
 
-        let segment = PathSegment {
-            start: last_value,
-            end: next_value,
-            duration,
-        };
-
-        segments.push_back(segment);
-
-        last_value = next_value;
-    }
-
-    if drift_out_time.is_some() {
-        let end_value = range.slightly_out(last_value);
-
-        let last_segment = PathSegment {
-            start: last_value,
-            end: end_value,
-            duration,
-        };
-
-        segments.push_back(last_segment);
+            last_value = next_value;
+        }
     }
 
     segments
