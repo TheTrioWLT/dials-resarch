@@ -72,17 +72,6 @@ impl DialRange {
             self.end + amount
         }
     }
-
-    /// Returns either self.start or self.end depending on which is closer to the provided value
-    pub fn end_closer_to_point(&self, value: f32) -> f32 {
-        let halfway = (self.end - self.start) / 2.0 + self.start;
-
-        if value <= halfway {
-            self.start
-        } else {
-            self.end
-        }
-    }
 }
 
 /// Represents a dial inside of our application "model"
