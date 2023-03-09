@@ -276,7 +276,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                             //Tell the state that a key was pressed after an alarm went off.
                             state.tracking_state.blink(
                                 current_trial.feedback_text.as_ref().map(|s| s.as_str()),
-                                current_trial.feedback_box.clone(),
+                                current_trial.box_color.clone(),
                             );
 
                             let dial = state

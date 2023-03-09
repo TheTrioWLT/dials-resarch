@@ -11,7 +11,7 @@ pub struct ConfigTrial {
     pub feedback_text: Option<String>,
 
     /// Changes the color of box per trial
-    pub feedback_box: Option<BoxColor>,
+    pub box_color: Option<BoxColor>,
 
     /// The name of the dial which this trial is associated with
     /// [`Dial`]
@@ -124,7 +124,7 @@ impl Default for Config {
                 .map(|i| ConfigTrial {
                     correct_response_key: char::from_digit(i, 10).unwrap(),
                     feedback_text: Some(String::from("")),
-                    feedback_box: None,
+                    box_color: None,
                     dial: format!("d{i}"),
                     alarm: format!("a{i}"),
                     alarm_time: 4.0,
