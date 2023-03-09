@@ -56,10 +56,10 @@ pub struct TrackingWidgetState {
 }
 
 impl TrackingWidgetState {
-    pub fn blink(&mut self, feedback_text: Option<String>, respond_color: Option<BoxColor>) {
+    pub fn blink(&mut self, feedback_text: Option<&str>, respond_color: Option<BoxColor>) {
         self.key_detected = true;
         self.outline_color = respond_color.map_or(FRAME_BORDER_COLOR, |c| c.into());
-        self.feedback_text = feedback_text;
+        self.feedback_text = feedback_text.map_or(None, |s| Some(s.to_string()));
     }
 
     //Keeps track of time since key detected and resets everything after the limit has been reached.

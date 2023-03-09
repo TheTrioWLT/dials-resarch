@@ -138,7 +138,7 @@ impl DialsApp {
             .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
-                    ui.add_space(window_height * 0.025);
+                    ui.add_space(window_height * 0.1);
                     TrackingWidget::new(
                         running_state.ball.pos(),
                         running_state.tracking_state.key_detected,
