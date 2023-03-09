@@ -4,6 +4,7 @@ use eframe::{
     emath::{Align2, Pos2, Vec2},
     epaint::{CircleShape, Color32, FontId},
 };
+use serde::{Deserialize, Serialize};
 
 const FRAME_BORDER_WIDTH: f32 = 1.0;
 const FRAME_BORDER_COLOR: Color32 = Color32::WHITE;
@@ -21,9 +22,13 @@ pub const TEXT_FLASH_TIME: f32 = 0.8;
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
 //The three possible colors for the Box to have, excluding the default WHITE.
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BoxColor {
+    #[serde(rename = "green")]
     Green,
+    #[serde(rename = "red")]
     Red,
+    #[serde(rename = "blue")]
     Blue,
 }
 

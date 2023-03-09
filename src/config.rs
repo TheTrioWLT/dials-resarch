@@ -1,4 +1,4 @@
-use crate::ball::BallVelocity;
+use crate::{ball::BallVelocity, tracking_widget::BoxColor};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -9,6 +9,9 @@ pub struct ConfigTrial {
 
     /// Text to display after key press
     pub feedback_text: Option<String>,
+
+    /// Changes the color of box per trial
+    pub feedback_box: Option<BoxColor>,
 
     /// The name of the dial which this trial is associated with
     /// [`Dial`]
@@ -120,7 +123,8 @@ impl Default for Config {
             trials: (1u32..=6)
                 .map(|i| ConfigTrial {
                     correct_response_key: char::from_digit(i, 10).unwrap(),
-                    feedback_text: Some(String::from("")), //An optional variable
+                    feedback_text: Some(String::from("")),
+                    feedback_box: None,
                     dial: format!("d{i}"),
                     alarm: format!("a{i}"),
                     alarm_time: 4.0,

@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use app::{AppState, DialsApp};
 use audio::AudioManager;
 use dial::{Dial, DialRange};
 use eframe::epaint::Vec2;
@@ -10,9 +11,6 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-use tracking_widget::BoxColor;
-
-use app::{AppState, DialsApp};
 
 use crate::ball::Ball;
 use crate::output::TrialReaction;
@@ -278,7 +276,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                             //Tell the state that a key was pressed after an alarm went off.
                             state.tracking_state.blink(
                                 current_trial.feedback_text.as_ref().map(|s| s.as_str()),
-                                Some(BoxColor::Green),
+                                current_trial.feedback_box.clone(),
                             );
 
                             let dial = state
