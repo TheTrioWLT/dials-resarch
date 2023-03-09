@@ -275,8 +275,8 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                             //Tell the state that a key was pressed after an alarm went off.
                             state.tracking_state.blink(
-                                current_trial.feedback_text.as_ref().map(|s| s.as_str()),
-                                current_trial.box_color.clone(),
+                                current_trial.feedback_text.as_deref(),
+                                current_trial.feedback_color.clone(),
                             );
 
                             let dial = state
@@ -296,8 +296,6 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                             if !is_done && state.trials.is_empty() {
                                 state.session_output.write_to_file();
-
-                                state.num_alarms_done += 1;
 
                                 log::info!(
                                     "wrote session output to file: {}",

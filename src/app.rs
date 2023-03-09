@@ -52,7 +52,6 @@ pub struct RunningState {
     pub last_keys: HashMap<Key, bool>,
     pub input_mode: InputMode,
     pub session_output: SessionOutput,
-    pub num_alarms_done: usize,
     pub tracking_state: TrackingWidgetState,
 }
 
@@ -72,7 +71,6 @@ impl RunningState {
             last_keys: HashMap::new(),
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
-            num_alarms_done: 0,
             tracking_state: TrackingWidgetState::new(false, None, 0.0, Color32::WHITE),
         }
     }
