@@ -215,6 +215,20 @@ fn generate_random_dial_path(
         let mut time_remaining = drift_out_time;
         let mut start = range.random_in();
         let mut end = range.slightly_out(start);
+        let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
+
+        let first_segment = PathSegment {
+            start,
+            end,
+            duration,
+        };
+
+        let correct_duration_time = time_to_pass_end(range, duration, end);
+        time_remaining -= correct_duration_time;
+        end = start;
+        start = range.random_near(end);
+
+        segments.push_back(first_segment);
 
         while time_remaining > MAX_SEGMENT_TIME {
             let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
@@ -260,6 +274,20 @@ fn generate_random_dial_path(
     }
 
     segments
+}
+
+// Returns the time at which the dial needle will pass the end of the range and head towards point "end"
+// given the duration of the path segment
+fn time_to_pass_end(range: &DialRange, duration: f32, end: f32) -> f32 {
+    // This equation was derived on paper by taking our equation for needle position and solving for time
+
+    let (path_start, path_zero) = if end > range.start && end > range.end {
+        (range.start, range.end)
+    } else {
+        (range.end, range.start)
+    };
+
+    (duration / 10.0) * (((end - path_start) / (path_zero - path_start)).ln() + 5.0)
 }
 
 fn sigmoid(a: f32) -> f32 {
