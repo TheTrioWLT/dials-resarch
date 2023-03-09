@@ -6,15 +6,13 @@ use std::io::BufReader;
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
-use crate::dial::DialId;
-
 /// A command that can be sent to the audio thread
 #[derive(Debug)]
 enum AudioCommand {
     /// A command to begin playing an audio sample
-    Play(DialId, SoundSample),
+    Play(String, SoundSample),
     /// A command to stop playing an audio sample
-    Stop(DialId),
+    Stop(String),
 }
 
 pub struct AudioManager {
@@ -46,7 +44,7 @@ impl AudioManager {
 
         loop {
             match rx.recv() {
-                Ok(AudioCommand::Play(id, sample)) => {
+                Ok(AudioCommand::Play(name, sample)) => {
                     let sink = match Sink::try_new(&stream_handle) {
                         Ok(sink) => sink,
                         Err(e) => {
@@ -55,16 +53,16 @@ impl AudioManager {
                         }
                     };
 
-                    log::info!("got sample, with alarm id {}", id);
+                    log::info!("got sample, with dial name {}", name);
                     // Starts playing the sample
                     sink.append(sample);
-                    sink_map.insert(id, sink);
+                    sink_map.insert(name, sink);
                     log::info!("returned from play_raw");
                 }
-                Ok(AudioCommand::Stop(id)) => {
-                    log::info!("Stopping alarm with id: {}", id);
+                Ok(AudioCommand::Stop(name)) => {
+                    log::info!("Stopping alarm with dial name: {}", name);
                     // Drops the Sink
-                    sink_map.remove(&id);
+                    sink_map.remove(&name);
                 }
                 _ => {}
             }
@@ -91,24 +89,24 @@ impl AudioManager {
     }
 
     /// Does its best to play the given alarm sound
-    pub fn play(&self, id: DialId, path: &str) -> Result<()> {
+    pub fn play(&self, name: &str, path: &str) -> Result<()> {
         log::info!("about to preload file");
         let sample = self.preload_file(path)?;
         log::info!("got sample");
         let guard = self.tx.lock().unwrap();
         log::info!("sending sample to other thread");
-        let _ = guard.send(AudioCommand::Play(id, sample));
+        let _ = guard.send(AudioCommand::Play(name.to_string(), sample));
         Ok(())
     }
 
-    /// Cancels playing of an alarm sound by its unique alarm id
-    pub fn stop(&self, id: DialId) {
+    /// Cancels playing of an alarm sound by its unique alarm name
+    pub fn stop(&self, name: &str) {
         let guard = self.tx.lock().unwrap();
-        let _ = guard.send(AudioCommand::Stop(id));
+        let _ = guard.send(AudioCommand::Stop(name.to_string()));
     }
 }
 
-/// Custom [`rodio::Source`] that holds a shallow copy of its data to allow for easy cloning since
+/// Custom [`Source`] that holds a shallow copy of its data to allow for easy cloning since
 /// playing a sample consumes self
 #[derive(Clone, Debug)]
 pub struct SoundSample {
