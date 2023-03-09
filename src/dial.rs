@@ -1,19 +1,16 @@
-use crate::config::Alarm;
 use derive_new::new;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::{collections::VecDeque, time::Instant};
+use std::collections::VecDeque;
 
 /// The value required to have the needle point to the very end of the dial
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
-/// The maximum number of segments in a random path that is traversed by the dial in its wandering
-const MAX_PATH_SEGMENTS: usize = 8;
-/// The minimum number of segments in a random path that is traversed by the dial in its wandering
-const MIN_PATH_SEGMENTS: usize = 4;
-/// The number of seconds that a path for the dial should be generated for, for after the dial is reset
-const AFTER_RESET_PATH_TIME: usize = 3600;
-/// The number of seconds per path segment for after the dial has been reset. This determines the number
-/// of segments
-const AFTER_RESET_SECONDS_PER_SEGMENT: f32 = 2.0;
+/// The average number of seconds per segment that should be used when the dial has a time to drift out
+const SECONDS_PER_SEGMENT: f32 = 2.0;
+/// The random deviation allowed in the seconds per segment
+const SECONDS_PER_SEGMENT_DEVIATION: f32 = 1.0;
+/// The number of path segments that should be generated after the dial is reset for the final time
+const AFTER_RESET_PATH_SEGMENTS: usize = 4000;
 
 /// A "range" which a dial can be inside or out of. This is used to keep track of if the dial is
 /// "in range" so that we know when to sound an alarm.
@@ -29,6 +26,11 @@ impl DialRange {
     /// Returns true if the value is contained within this range "inclusively"
     pub fn contains(&self, value: f32) -> bool {
         value <= self.end && value >= self.start
+    }
+
+    /// Returns the value that is in the direct middle of the range
+    pub fn middle(&self) -> f32 {
+        (self.end - self.start) / 2.0 + self.start
     }
 
     /// Returns a random value that is near the provided value within half of the maximum range
@@ -72,121 +74,60 @@ impl DialRange {
     }
 }
 
-/// Data associated with an alarm that has drifted out of range
-#[derive(Debug, Copy, Clone)]
-pub struct TriggeredAlarm {
-    // The row of the dial that caused this alarm
-    pub row_id: u32,
-    // The col of the dial that caused this alarm
-    pub col_id: u32,
-    /// The time at which this alarm was triggered
-    pub time: Instant,
-    /// The correct key with which to stop this alarm
-    pub correct_key: char,
-    /// The DialId of the dial that caused this alarm
-    pub id: DialId,
-}
-
 /// Represents a dial inside of our application "model"
 #[derive(Debug, Clone)]
 pub struct Dial {
     // The current value of the dial, which is where the needle is pointing
     value: f32,
-    // The row this dial is located in
-    row_id: u32,
-    // The column this dial is located at
-    col_id: u32,
+    // The name of this dial
+    name: String,
     // The "in-range" for this dial: where it is supposed to be, and if it exits, the alarm sounds
     in_range: DialRange,
-    // The key that corresponds to deactivating this dial's alarm
-    key: char,
-    // The path to the dial's alarm's audio file
-    alarm_path: String,
-    // The name of the alarm that corresponds to this dial
-    alarm_name: String,
-    // If the alarm has already fired or not
-    alarm_fired: bool,
-    // This dial's random path that it needs to traverse in order to drift up and down
-    random_path: VecDeque<PathSegment>,
+    // This dial's random paths that it needs to traverse in order to drift up and down
+    path: VecDeque<PathSegment>,
+    // If this dial is randomly wandering in its range or if it is scheduled to drift out
+    is_wandering: bool,
     // The current time into the current path segment
     segment_time: f32,
     // The current direction of travel in the path segment.
     travel_direction: f32,
 }
 
-/// A dial's unique id
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DialId(u64);
-
-impl std::fmt::Display for DialId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // format in hex since we do major bit shifting so the col and row are easily visible
-        f.write_fmt(format_args!("{:X}", self.0))
-    }
-}
-
 impl Dial {
-    /// Creates a new Dial with the provided row, column, in-range, alarm values, and the time_to_drift
-    /// which represents how long until the dial should go out of its in-range
-    pub fn new(
-        row_id: u32,
-        col_id: u32,
-        in_range: DialRange,
-        alarm: &Alarm,
-        time_to_drift: f32,
-    ) -> Self {
-        let random_path = generate_random_dial_path(
-            &in_range,
-            time_to_drift,
-            true,
-            MAX_PATH_SEGMENTS,
-            MIN_PATH_SEGMENTS,
-        );
-
+    /// Creates a new Dial with the provided name and in-range
+    pub fn new(name: String, in_range: DialRange) -> Self {
         Self {
-            value: in_range.random_in(),
-            row_id,
-            col_id,
+            value: in_range.middle(),
+            name,
             in_range,
-            key: alarm.clear_key,
-            alarm_path: alarm.audio_path.clone(),
-            alarm_name: alarm.name.clone(),
-            alarm_fired: false,
-            random_path,
+            path: generate_random_dial_path(&in_range, in_range.middle(), None),
+            is_wandering: true,
             segment_time: 0.0,
             travel_direction: 1.0,
         }
     }
 
-    /// Resets the dial so that it can drift until the trial is over, but never goes out of
-    /// its in-range again
-    pub fn reset(&mut self) {
-        let path_segments =
-            (AFTER_RESET_PATH_TIME as f32 / AFTER_RESET_SECONDS_PER_SEGMENT) as usize;
-
-        self.random_path = generate_random_dial_path(
-            &self.in_range,
-            AFTER_RESET_PATH_TIME as f32,
-            false,
-            path_segments,
-            path_segments,
-        );
+    /// Resets the dial to the middle of the range and continues "wandering"
+    /// If a drift out time is specified, that is used to generate the path, if not the dial will
+    /// drift "forever"
+    pub fn reset(&mut self, drift_out_time: Option<f32>) {
+        self.segment_time = 0.0;
+        self.is_wandering = drift_out_time.is_none();
+        self.path = if self.is_wandering {
+            generate_random_dial_path(&self.in_range, self.in_range.middle(), drift_out_time)
+        } else {
+            generate_random_dial_path(&self.in_range, self.value, drift_out_time)
+        }
     }
 
     /// Updates the dial using the amount of time that has passed since the last update
-    ///
-    /// If this dial has gone out of range since the last update, the dial's alarm sound is played
-    /// and `Some` is returned containing the relevant [`TriggeredAlarm`] data.
-    pub fn update(
-        &mut self,
-        delta_time: f32,
-        audio: &crate::AudioManager,
-    ) -> Option<TriggeredAlarm> {
+    /// Returns a bool stating whether or not the dial has drifted out of range this update.
+    /// It only returns true once, and then it must be reset
+    pub fn update(&mut self, delta_time: f32) {
         // Update the current time within the segment
         self.segment_time += delta_time;
 
-        // If we haven't run out of path segments yet
-        if let Some(current) = self.random_path.front() {
+        if let Some(current) = self.path.front() {
             // If we are still in our current path segment
             if current.in_segment(self.segment_time) {
                 // Calculate our current position in the path at the current time
@@ -194,22 +135,9 @@ impl Dial {
             } else {
                 // Move onto the next path segment
                 self.travel_direction = current.travel_direction();
-                self.random_path.pop_front();
+                self.path.pop_front();
                 self.segment_time = 0.0;
             }
-        } else {
-            // Keep drifting
-            self.value += self.travel_direction * 20.0 * delta_time;
-        }
-
-        if !self.alarm_fired && !self.in_range.contains(self.value) {
-            self.alarm_fired = true;
-            // we preloaded each audio file so this shouldn't fail, and if it does we don't care
-            let _ = audio.play(self.dial_id(), &self.alarm_path);
-
-            Some(TriggeredAlarm::from(&*self))
-        } else {
-            None
         }
     }
 
@@ -218,33 +146,19 @@ impl Dial {
         self.value
     }
 
-    /// The name of the alarm that this dial sounds when it is out of range
-    pub fn alarm_name(&self) -> &String {
-        &self.alarm_name
-    }
-
     /// The in-range for this dial
     pub fn in_range(&self) -> DialRange {
         self.in_range
     }
 
-    /// A unique id for this dial
-    fn dial_id(&self) -> DialId {
-        // `row_id` and `col_id` are both u32's, therefore shifting the
-        // row by 32 bits is guaranteed to give a perfect hash without collisions
-        DialId((self.row_id as u64) << 32 | self.col_id as u64)
+    // The unique name of this dial
+    pub fn name(&self) -> &String {
+        &self.name
     }
-}
 
-impl From<&Dial> for TriggeredAlarm {
-    fn from(d: &Dial) -> Self {
-        Self {
-            row_id: d.row_id,
-            col_id: d.col_id,
-            time: Instant::now(),
-            correct_key: d.key,
-            id: d.dial_id(),
-        }
+    // If the dial is just wandering or if it was told to drift out yet
+    pub fn is_wandering(&self) -> bool {
+        self.is_wandering
     }
 }
 
@@ -289,43 +203,60 @@ impl PathSegment {
 /// the given range.
 fn generate_random_dial_path(
     range: &DialRange,
-    time_to_drift: f32,
-    drift_out: bool,
-    max_path_segments: usize,
-    min_path_segments: usize,
+    start_value: f32,
+    drift_out_time: Option<f32>,
 ) -> VecDeque<PathSegment> {
-    let num: f32 = rand::random();
-    let num_segments = ((max_path_segments as f32 * num) as usize).max(min_path_segments);
+    const MIN_SEGMENT_TIME: f32 = SECONDS_PER_SEGMENT - SECONDS_PER_SEGMENT_DEVIATION;
+    const MAX_SEGMENT_TIME: f32 = SECONDS_PER_SEGMENT + SECONDS_PER_SEGMENT_DEVIATION;
 
-    let mut segments = VecDeque::with_capacity(num_segments);
-    let mut last_value = range.random_in();
+    let mut segments = VecDeque::new();
 
-    let duration = time_to_drift / num_segments as f32;
+    if let Some(drift_out_time) = drift_out_time {
+        let mut time_remaining = drift_out_time;
+        let mut start = range.random_in();
+        let mut end = range.slightly_out(start);
 
-    for _ in 0..(num_segments - 1) {
-        let next_value = range.random_near(last_value);
+        while time_remaining > MAX_SEGMENT_TIME {
+            let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
 
-        let segment = PathSegment {
-            start: last_value,
-            end: next_value,
-            duration,
+            let segment = PathSegment {
+                start,
+                end,
+                duration,
+            };
+
+            segments.push_front(segment);
+
+            let last_end = end;
+            end = start;
+            start = range.random_near(last_end);
+            time_remaining -= duration;
+        }
+
+        let final_segment = PathSegment {
+            start: start_value,
+            end,
+            duration: time_remaining,
         };
 
-        segments.push_back(segment);
+        segments.push_front(final_segment);
+    } else {
+        let mut last_value = start_value;
 
-        last_value = next_value;
-    }
+        for _ in 0..AFTER_RESET_PATH_SEGMENTS {
+            let next_value = range.random_near(last_value);
+            let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
 
-    if drift_out {
-        let end_value = range.slightly_out(last_value);
+            let segment = PathSegment {
+                start: last_value,
+                end: next_value,
+                duration,
+            };
 
-        let last_segment = PathSegment {
-            start: last_value,
-            end: end_value,
-            duration,
-        };
+            segments.push_back(segment);
 
-        segments.push_back(last_segment);
+            last_value = next_value;
+        }
     }
 
     segments

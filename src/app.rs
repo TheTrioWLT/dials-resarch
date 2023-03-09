@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Mutex,
-};
+use std::{collections::HashMap, sync::Mutex};
 
 use eframe::{
     egui::{self, Frame, Key},
@@ -9,10 +6,11 @@ use eframe::{
     epaint::Color32,
 };
 
+use crate::config::{ConfigAlarm, ConfigTrial};
 use crate::{
     ball::Ball,
     config::InputMode,
-    dial::{Dial, TriggeredAlarm},
+    dial::Dial,
     dial_widget::{
         DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
     },
@@ -20,6 +18,8 @@ use crate::{
     tracking_widget::{TrackingWidget, TrackingWidgetState},
     DEFAULT_OUTPUT_PATH,
 };
+
+const UI_BACKGROUND_COLOR: Color32 = Color32::from_rgb(27, 27, 27);
 
 // We don't really need extra indirection by Box-ing RunningState, we aren't moving a bunch
 // of AppState's around all the time
@@ -37,7 +37,11 @@ impl Default for AppState {
 
 pub struct RunningState {
     pub dial_rows: Vec<Vec<Dial>>,
+    pub trials: Vec<ConfigTrial>,
+    pub alarms: HashMap<String, ConfigAlarm>,
     pub ball: Ball,
+    pub alarm_active: bool,
+    pub current_trial_number: usize,
     /// The input axes as stored as [-1.0 to 1.0, -1.0 to 1.0]: [x, y]
     pub input_axes: Vec2,
     /// The input axes as stored as [0.0 to 1.0, 0.0 to 1.0]
@@ -45,7 +49,6 @@ pub struct RunningState {
     pub input_y: [f32; 2],
     /// If a key was recently pressed which is to be interpreted as an alarm reaction
     pub pressed_key: Option<char>,
-    pub queued_alarms: VecDeque<TriggeredAlarm>,
     pub last_keys: HashMap<Key, bool>,
     pub input_mode: InputMode,
     pub session_output: SessionOutput,
@@ -57,12 +60,15 @@ impl RunningState {
     pub fn new() -> Self {
         Self {
             dial_rows: Vec::new(),
+            trials: Vec::new(),
+            alarms: HashMap::new(),
             ball: Ball::new(0.0, 0.0, crate::ball::BallVelocity::Slow),
+            alarm_active: false,
+            current_trial_number: 1,
             input_axes: Vec2::ZERO,
             input_x: [0.0, 0.0],
             input_y: [0.0, 0.0],
             pressed_key: None,
-            queued_alarms: VecDeque::new(),
             last_keys: HashMap::new(),
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
@@ -111,33 +117,37 @@ impl DialsApp {
 
     /// Draws the UI that shows when the trial is done
     fn done_ui(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.centered_and_justified(|ui| {
-                // This has to be a *single* widget so that we don't have to do a bunch of math...
-                ui.label(format!(
-                    "Trial Complete!\n\nTrial data saved to: {}",
-                    DEFAULT_OUTPUT_PATH
-                ));
+        egui::CentralPanel::default()
+            .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
+            .show(ctx, |ui| {
+                ui.centered_and_justified(|ui| {
+                    // This has to be a *single* widget so that we don't have to do a bunch of math...
+                    ui.label(format!(
+                        "Trial Complete!\n\nTrial data saved to: {}",
+                        DEFAULT_OUTPUT_PATH
+                    ));
+                });
             });
-        });
     }
 
     /// Draws the tracking task part of the UI
     fn tracking_ui(&mut self, ctx: &egui::Context, running_state: &RunningState) {
         let window_height = ctx.available_rect().height();
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.add_space(window_height * 0.1);
-                TrackingWidget::new(
-                    running_state.ball.pos(),
-                    running_state.tracking_state.key_detected,
-                    running_state.tracking_state.feedback_text.clone(),
-                    running_state.tracking_state.outline_color,
-                )
-                .show(ui);
+        egui::CentralPanel::default()
+            .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add_space(window_height * 0.025);
+                    TrackingWidget::new(
+                        running_state.ball.pos(),
+                        running_state.tracking_state.key_detected,
+                        running_state.tracking_state.feedback_text.clone(),
+                        running_state.tracking_state.outline_color,
+                    )
+                    .show(ui);
+                });
             });
-        });
     }
 
     /// Draws the dials part of the UI
@@ -153,7 +163,8 @@ impl DialsApp {
 
         egui::TopBottomPanel::bottom("bottom_panel")
             .max_height(bottom_panel_height)
-            .frame(Frame::none().fill(Color32::from_rgb(27, 27, 27)))
+            .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
+            .show_separator_line(false)
             .show(ctx, |ui| {
                 let max_num_dials = running_state
                     .dial_rows

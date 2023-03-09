@@ -2,21 +2,20 @@ use derive_new::new;
 use std::io::Write;
 
 /// A constant for the CSV file headers
-const CSV_HEADERS: &str = "alarm, rms_error, response_time, correct_key, key";
+const CSV_HEADERS: &str = "trial, rms_error, response_time, correct_key, key";
 
 /// A struct that helps to collect AlarmReactions and can output them to a CSV file
 pub struct SessionOutput {
-    /// The current alarm reactions in chronological order
-    pub alarm_reactions: Vec<AlarmReaction>,
+    /// The current trial reactions in chronological order
+    pub trial_reactions: Vec<TrialReaction>,
     /// The output path to the CSV
     pub output_path: String,
 }
 
-/// Information about a user's response to an instance of an alarm being fired
+/// Information about a user's response to an instance of an alarm being fired, a trial executing
 #[derive(Debug, Clone, new)]
-pub struct AlarmReaction {
-    /// The name of the alarm that the dial reaction was to
-    pub alarm_name: String,
+pub struct TrialReaction {
+    pub trial_num: usize,
     /// The reaction time to the alarm in milliseconds
     pub millis: u32,
     /// If the correct key to respond to the alarm with was pressed or not
@@ -31,17 +30,17 @@ impl SessionOutput {
     /// Creates a new session output that outputs to the provided path
     pub fn new(output_path: String) -> Self {
         Self {
-            alarm_reactions: Vec::new(),
+            trial_reactions: Vec::new(),
             output_path,
         }
     }
 
-    /// Adds a AlarmReaction to be outputted
-    pub fn add_reaction(&mut self, reaction: AlarmReaction) {
-        self.alarm_reactions.push(reaction);
+    /// Adds a TrialReaction to be outputted
+    pub fn add_reaction(&mut self, reaction: TrialReaction) {
+        self.trial_reactions.push(reaction);
     }
 
-    /// Writes all of the currently held DialReactions to the SessionOutput's path in CSV format
+    /// Writes all of the currently held TrialReactions to the SessionOutput's path in CSV format
     pub fn write_to_file(&self) {
         let mut file = std::fs::OpenOptions::new()
             .create(true)
@@ -52,11 +51,11 @@ impl SessionOutput {
         writeln!(file, "{CSV_HEADERS}").unwrap();
         println!("{CSV_HEADERS}");
 
-        for reaction in &self.alarm_reactions {
+        for reaction in &self.trial_reactions {
             writeln!(
                 file,
                 "{}, {}, {}, {}, {}",
-                reaction.alarm_name,
+                reaction.trial_num,
                 reaction.rms_error,
                 reaction.millis,
                 reaction.correct_key,
@@ -65,7 +64,7 @@ impl SessionOutput {
             .unwrap();
             println!(
                 "{}, {}, {}, {}, {}",
-                reaction.alarm_name,
+                reaction.trial_num,
                 reaction.rms_error,
                 reaction.millis,
                 reaction.correct_key,
