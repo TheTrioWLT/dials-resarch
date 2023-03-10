@@ -15,7 +15,7 @@ use crate::{
         DialWidget, DIALS_HEIGHT_PERCENT, MAX_DIALS_WIDTH_PERCENT, MAX_DIAL_HEIGHT_PERCENT,
     },
     output::SessionOutput,
-    tracking_widget::TrackingWidget,
+    tracking_widget::{TrackingWidget, TrackingWidgetState},
     DEFAULT_OUTPUT_PATH,
 };
 
@@ -52,6 +52,7 @@ pub struct RunningState {
     pub last_keys: HashMap<Key, bool>,
     pub input_mode: InputMode,
     pub session_output: SessionOutput,
+    pub tracking_state: TrackingWidgetState,
 }
 
 impl RunningState {
@@ -70,6 +71,7 @@ impl RunningState {
             last_keys: HashMap::new(),
             input_mode: InputMode::default(),
             session_output: SessionOutput::new(String::new()),
+            tracking_state: TrackingWidgetState::new(false, None, 0.0, Color32::WHITE),
         }
     }
 }
@@ -134,8 +136,14 @@ impl DialsApp {
             .frame(Frame::none().fill(UI_BACKGROUND_COLOR))
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
-                    ui.add_space(window_height * 0.025);
-                    TrackingWidget::new(running_state.ball.pos()).show(ui);
+                    ui.add_space(window_height * 0.1);
+                    TrackingWidget::new(
+                        running_state.ball.pos(),
+                        running_state.tracking_state.key_detected,
+                        running_state.tracking_state.feedback_text.clone(),
+                        running_state.tracking_state.outline_color,
+                    )
+                    .show(ui);
                 });
             });
     }

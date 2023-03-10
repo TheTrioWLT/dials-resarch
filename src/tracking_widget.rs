@@ -1,9 +1,10 @@
 use derive_new::new;
 use eframe::{
     egui,
-    emath::{Pos2, Vec2},
-    epaint::{CircleShape, Color32},
+    emath::{Align2, Pos2, Vec2},
+    epaint::{CircleShape, Color32, FontId},
 };
+use serde::{Deserialize, Serialize};
 
 const FRAME_BORDER_WIDTH: f32 = 1.0;
 const FRAME_BORDER_COLOR: Color32 = Color32::WHITE;
@@ -16,15 +17,71 @@ const CROSSHAIR_COLOR: Color32 = Color32::WHITE;
 
 const BALL_RADIUS: f32 = 0.03;
 
+pub const TEXT_FLASH_TIME: f32 = 0.8;
+
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
+//The three possible colors for the Box to have, excluding the default WHITE.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum FeedbackColor {
+    #[serde(rename = "green")]
+    Green,
+    #[serde(rename = "red")]
+    Red,
+    #[serde(rename = "blue")]
+    Blue,
+}
+
+impl From<FeedbackColor> for Color32 {
+    fn from(value: FeedbackColor) -> Self {
+        match value {
+            FeedbackColor::Red => Color32::RED,
+            FeedbackColor::Green => Color32::GREEN,
+            FeedbackColor::Blue => Color32::BLUE,
+        }
+    }
+}
+
+//Keeps track of when a key is pressed and the time it has been since.
 #[derive(new)]
 pub struct TrackingWidget {
     ball_pos: Pos2,
+    key_detected: bool,
+    feedback_text: Option<String>,
+    outline_color: Color32,
+}
+
+//This structure communicates with AppState in order to get the information needed.
+#[derive(new)]
+pub struct TrackingWidgetState {
+    pub key_detected: bool,
+    pub feedback_text: Option<String>,
+    time_since: f32,
+    pub outline_color: Color32,
+}
+
+impl TrackingWidgetState {
+    pub fn blink(&mut self, feedback_text: Option<&str>, respond_color: Option<FeedbackColor>) {
+        self.key_detected = true;
+        self.outline_color = respond_color.map_or(FRAME_BORDER_COLOR, |c| c.into());
+        self.feedback_text = feedback_text.map(|s| s.to_string());
+    }
+
+    //Keeps track of time since key detected and resets everything after the limit has been reached.
+    pub fn update(&mut self, time: f32) {
+        if self.key_detected {
+            self.time_since += time;
+            if self.time_since >= TEXT_FLASH_TIME {
+                self.time_since = 0.0;
+                self.key_detected = false;
+                self.outline_color = FRAME_BORDER_COLOR;
+            }
+        }
+    }
 }
 
 impl TrackingWidget {
-    pub fn show(self, ui: &mut egui::Ui) -> egui::Response {
+    pub fn show(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let height_size = FRAME_MAX_HEIGHT_PERCENT * ui.available_height();
         let width_size = FRAME_MAX_WIDTH_PERCENT * ui.available_width();
 
@@ -42,7 +99,7 @@ impl TrackingWidget {
             let frame_shape = egui::epaint::RectShape::stroke(
                 rect,
                 egui::Rounding::none(),
-                egui::Stroke::new(FRAME_BORDER_WIDTH, FRAME_BORDER_COLOR),
+                egui::Stroke::new(FRAME_BORDER_WIDTH, self.outline_color),
             );
 
             painter.add(egui::Shape::Rect(frame_shape));
@@ -52,6 +109,17 @@ impl TrackingWidget {
             let frame_width = rect.width();
             let crosshair_half_size = BALL_RADIUS * frame_width / 2.0;
             let center = rect.center();
+
+            // Draw feedback text
+            if self.key_detected {
+                let text = self.feedback_text.clone().map_or("".to_string(), |s| s);
+                let text_pos = Pos2::new(center.x, center.y * 0.05);
+                let anchor = Align2::CENTER_TOP;
+                let font_id = FontId::proportional(20.0);
+                let text_color = Color32::WHITE;
+
+                painter.text(text_pos, anchor, text, font_id, text_color);
+            }
 
             let v_top_pos = Pos2::new(center.x, center.y - crosshair_half_size);
             let v_bottom_pos = Pos2::new(center.x, center.y + crosshair_half_size);
