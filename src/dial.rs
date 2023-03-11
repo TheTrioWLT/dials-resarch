@@ -11,6 +11,8 @@ const SECONDS_PER_SEGMENT: f32 = 2.0;
 const SECONDS_PER_SEGMENT_DEVIATION: f32 = 1.0;
 /// The number of path segments that should be generated after the dial is reset for the final time
 const AFTER_RESET_PATH_SEGMENTS: usize = 4000;
+/// The number of seconds to flash the dial needle for when an alarm is acknowledged
+const DIAL_FLASH_TIME: f32 = 0.5;
 
 /// A "range" which a dial can be inside or out of. This is used to keep track of if the dial is
 /// "in range" so that we know when to sound an alarm.
@@ -91,6 +93,8 @@ pub struct Dial {
     segment_time: f32,
     // The current direction of travel in the path segment.
     travel_direction: f32,
+    // The remaining amount of time to flash the dial needle for if needed
+    flash_time_remaining: Option<f32>,
 }
 
 impl Dial {
@@ -104,6 +108,7 @@ impl Dial {
             is_wandering: true,
             segment_time: 0.0,
             travel_direction: 1.0,
+            flash_time_remaining: None,
         }
     }
 
@@ -139,6 +144,14 @@ impl Dial {
                 self.segment_time = 0.0;
             }
         }
+
+        if let Some(time_remaining) = &mut self.flash_time_remaining {
+            *time_remaining -= delta_time;
+
+            if *time_remaining < 0.0 {
+                self.flash_time_remaining = None;
+            }
+        }
     }
 
     /// The value of the dial, where it is currently pointing
@@ -159,6 +172,16 @@ impl Dial {
     // If the dial is just wandering or if it was told to drift out yet
     pub fn is_wandering(&self) -> bool {
         self.is_wandering
+    }
+
+    // Tells the dial to begin flashing the needle
+    pub fn flash(&mut self) {
+        self.flash_time_remaining = Some(DIAL_FLASH_TIME);
+    }
+
+    // If the dial needle is flashing or not in response to being reset
+    pub fn is_flashing(&self) -> bool {
+        self.flash_time_remaining.is_some()
     }
 }
 

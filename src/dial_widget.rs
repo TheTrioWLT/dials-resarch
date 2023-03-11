@@ -18,20 +18,22 @@ const DIAL_ANGLE_OFFSET: f32 = -std::f32::consts::FRAC_PI_2;
 
 const DIAL_TICK_COLOR: Color32 = Color32::WHITE;
 const DIAL_NEEDLE_COLOR: Color32 = Color32::YELLOW;
+const DIAL_NEEDLE_FLASHING_COLOR: Color32 = Color32::from_rgb(0, 186, 255);
 
 pub struct DialWidget {
     value: f32,
     radius: f32,
-    #[allow(dead_code)]
     in_range: DialRange,
+    flashing: bool,
 }
 
 impl DialWidget {
-    pub fn new(value: f32, radius: f32, in_range: DialRange) -> Self {
+    pub fn new(value: f32, radius: f32, in_range: DialRange, flashing: bool) -> Self {
         Self {
             value,
             radius,
             in_range,
+            flashing,
         }
     }
 
@@ -98,7 +100,14 @@ impl DialWidget {
 
             painter.add(egui::Shape::LineSegment {
                 points: [center, end_position],
-                stroke: Stroke::new(2.0, DIAL_NEEDLE_COLOR),
+                stroke: Stroke::new(
+                    2.0,
+                    if self.flashing {
+                        DIAL_NEEDLE_FLASHING_COLOR
+                    } else {
+                        DIAL_NEEDLE_COLOR
+                    },
+                ),
             });
         }
 

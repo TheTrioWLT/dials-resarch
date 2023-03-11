@@ -286,6 +286,9 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                                 .find(|d| d.name() == &current_trial.dial)
                                 .unwrap();
 
+                            // Flash the dial needle
+                            dial.flash();
+
                             audio.stop(&current_trial.dial);
                             dial.reset(None);
                             last_trial_time = Instant::now();

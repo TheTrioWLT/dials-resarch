@@ -212,8 +212,13 @@ impl DialsApp {
                             ui.spacing_mut().item_spacing.x = x_spacing;
 
                             for dial in row.iter() {
-                                DialWidget::new(dial.value(), dial_radius, dial.in_range())
-                                    .show(ui);
+                                DialWidget::new(
+                                    dial.value(),
+                                    dial_radius,
+                                    dial.in_range(),
+                                    dial.is_flashing(),
+                                )
+                                .show(ui);
                             }
                         });
 
