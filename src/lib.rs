@@ -167,6 +167,8 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     const SPLASH_SCREEN_DELAY: Duration = Duration::from_secs(10);
     // This is set to true when all of the trials have been completed
     let mut is_done = false;
+    // The running RMSE of the distance from the ball to the crosshair
+    let mut trial_rmse = Vec::new();
 
     // The last Instant that a trial was run, so that the time can be measured relative to
     // trial activations.
@@ -262,20 +264,22 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 };
 
                 state.ball.update(input_axes, delta_time);
+                trial_rmse.push(state.ball.current_rms_error());
 
                 if let Some(key) = state.pressed_key.take() {
                     if let Some(current_trial) = state.trials.first() {
                         if last_trial_time.elapsed().as_secs_f32() > current_trial.alarm_time {
                             let millis = last_alarm_time.elapsed().as_millis() as u32;
-                            let current_rms_error = state.ball.current_rms_error();
 
                             let reaction = TrialReaction::new(
                                 state.current_trial_number,
                                 millis,
                                 current_trial.correct_response_key == key,
                                 key,
-                                current_rms_error,
+                                trial_rmse,
                             );
+
+                            trial_rmse = Vec::new();
 
                             //Tell the state that a key was pressed after an alarm went off.
                             state.tracking_state.blink(

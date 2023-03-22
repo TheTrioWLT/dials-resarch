@@ -2,7 +2,7 @@ use derive_new::new;
 use std::io::Write;
 
 /// A constant for the CSV file headers
-const CSV_HEADERS: &str = "trial, rms_error, response_time, correct_key, key";
+const CSV_HEADERS: &str = "trial, response_time, correct_key, key";
 
 /// A struct that helps to collect AlarmReactions and can output them to a CSV file
 pub struct SessionOutput {
@@ -23,7 +23,7 @@ pub struct TrialReaction {
     /// The correct key that should have been pressed
     pub key: char,
     /// The root-mean-square error of the distance from the ball to the center crosshair
-    pub rms_error: f32,
+    pub rms_error: Vec<f32>,
 }
 
 impl SessionOutput {
@@ -45,31 +45,75 @@ impl SessionOutput {
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
-            .open(&self.output_path)
+            .open(self.output_path.clone())
             .unwrap();
 
-        writeln!(file, "{CSV_HEADERS}").unwrap();
-        println!("{CSV_HEADERS}");
+        let trial_reactions = self.trial_reactions.clone();
 
-        for reaction in &self.trial_reactions {
-            writeln!(
-                file,
-                "{}, {}, {}, {}, {}",
-                reaction.trial_num,
-                reaction.rms_error,
-                reaction.millis,
-                reaction.correct_key,
-                reaction.key
-            )
-            .unwrap();
-            println!(
-                "{}, {}, {}, {}, {}",
-                reaction.trial_num,
-                reaction.rms_error,
-                reaction.millis,
-                reaction.correct_key,
-                reaction.key
-            );
-        }
+        std::thread::spawn(move || {
+            write!(file, "{CSV_HEADERS}").unwrap();
+            print!("{CSV_HEADERS}");
+
+            for t in 0..trial_reactions.len() {
+                write!(file, ", trial {} rmse", t + 1).unwrap();
+                print!(", trial {} rmse", t + 1);
+            }
+
+            writeln!(file).unwrap();
+            println!();
+
+            let mut rms_errors: Vec<_> =
+                trial_reactions.iter().map(|r| r.rms_error.iter()).collect();
+
+            for reaction in &trial_reactions {
+                write!(
+                    file,
+                    "{}, {}, {}, {}",
+                    reaction.trial_num, reaction.millis, reaction.correct_key, reaction.key
+                )
+                .unwrap();
+
+                print!(
+                    "{}, {}, {}, {}",
+                    reaction.trial_num, reaction.millis, reaction.correct_key, reaction.key
+                );
+
+                for rmse_entry in rms_errors.iter_mut() {
+                    if let Some(entry) = rmse_entry.next() {
+                        write!(file, ", {}", entry).unwrap();
+                        print!(", {}", entry);
+                    } else {
+                        write!(file, ",").unwrap();
+                        print!(",");
+                    }
+                }
+
+                writeln!(file).unwrap();
+                println!();
+            }
+
+            let mut is_done = false;
+
+            while !is_done {
+                is_done = true;
+
+                write!(file, ",,,").unwrap();
+                print!(",,,");
+
+                for rmse_entry in rms_errors.iter_mut() {
+                    if let Some(entry) = rmse_entry.next() {
+                        write!(file, ", {}", entry).unwrap();
+                        print!(", {}", entry);
+                        is_done = false;
+                    } else {
+                        write!(file, ",").unwrap();
+                        print!(",");
+                    }
+                }
+
+                writeln!(file).unwrap();
+                println!();
+            }
+        });
     }
 }
