@@ -1,4 +1,4 @@
-use crate::{ball::BallVelocity, tracking_widget::FeedbackColor};
+use crate::{ball::BallVelocity, dial::DialSpeed, tracking_widget::FeedbackColor};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -36,6 +36,9 @@ pub struct ConfigDial {
 
     /// The end of the in-range for this dial
     pub range_end: f32,
+
+    /// The relative movement speed of this dial
+    pub speed: DialSpeed,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -137,6 +140,7 @@ impl Default for Config {
                             name: format!("d{i}"),
                             range_start: i as f32 * 200.0,
                             range_end: i as f32 * 200.0 + range_size,
+                            speed: DialSpeed::Medium,
                         })
                         .collect(),
                 },
@@ -146,6 +150,7 @@ impl Default for Config {
                             name: format!("d{i}"),
                             range_start: i as f32 * 200.0,
                             range_end: i as f32 * 200.0 + range_size,
+                            speed: DialSpeed::Medium,
                         })
                         .collect(),
                 },

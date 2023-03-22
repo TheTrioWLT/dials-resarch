@@ -6,13 +6,45 @@ use std::collections::VecDeque;
 /// The value required to have the needle point to the very end of the dial
 pub const DIAL_MAX_VALUE: f32 = 10000.0;
 /// The average number of seconds per segment that should be used when the dial has a time to drift out
-const SECONDS_PER_SEGMENT: f32 = 2.0;
+const SLOW_SECONDS_PER_SEGMENT: f32 = 3.0;
+const MEDIUM_SECONDS_PER_SEGMENT: f32 = 2.0;
+const FAST_SECONDS_PER_SEGMENT: f32 = 1.0;
 /// The random deviation allowed in the seconds per segment
-const SECONDS_PER_SEGMENT_DEVIATION: f32 = 1.0;
+const SLOW_SECONDS_PER_SEGMENT_DEVIATION: f32 = 1.0;
+const MEDIUM_SECONDS_PER_SEGMENT_DEVIATION: f32 = 0.5;
+const FAST_SECONDS_PER_SEGMENT_DEVIATION: f32 = 0.25;
 /// The number of path segments that should be generated after the dial is reset for the final time
 const AFTER_RESET_PATH_SEGMENTS: usize = 4000;
 /// The number of seconds to flash the dial needle for when an alarm is acknowledged
 const DIAL_FLASH_TIME: f32 = 0.5;
+
+/// Three types of speed for any specific dial
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DialSpeed {
+    /// Slowest velocity [`SLOW_SECONDS_PER_SEGMENT`]
+    #[serde(rename = "slow")]
+    Slow,
+    /// Medium velocity [`MEDIUM_SECONDS_PER_SEGMENT`]
+    #[serde(rename = "medium")]
+    Medium,
+    /// Fast velocity [`FAST_SECONDS_PER_SEGMENT`]
+    #[serde(rename = "fast")]
+    Fast,
+}
+
+impl From<DialSpeed> for (f32, f32) {
+    fn from(value: DialSpeed) -> Self {
+        match value {
+            DialSpeed::Slow => (SLOW_SECONDS_PER_SEGMENT, SLOW_SECONDS_PER_SEGMENT_DEVIATION),
+            DialSpeed::Medium => (
+                MEDIUM_SECONDS_PER_SEGMENT,
+                MEDIUM_SECONDS_PER_SEGMENT_DEVIATION,
+            ),
+            DialSpeed::Fast => (FAST_SECONDS_PER_SEGMENT, FAST_SECONDS_PER_SEGMENT_DEVIATION),
+        }
+    }
+}
 
 /// A "range" which a dial can be inside or out of. This is used to keep track of if the dial is
 /// "in range" so that we know when to sound an alarm.
@@ -95,20 +127,23 @@ pub struct Dial {
     travel_direction: f32,
     // The remaining amount of time to flash the dial needle for if needed
     flash_time_remaining: Option<f32>,
+    // The movement speed of this dial
+    speed: DialSpeed,
 }
 
 impl Dial {
     /// Creates a new Dial with the provided name and in-range
-    pub fn new(name: String, in_range: DialRange) -> Self {
+    pub fn new(name: String, in_range: DialRange, speed: DialSpeed) -> Self {
         Self {
             value: in_range.middle(),
             name,
             in_range,
-            path: generate_random_dial_path(&in_range, in_range.middle(), None),
+            path: generate_random_dial_path(&in_range, in_range.middle(), None, speed),
             is_wandering: true,
             segment_time: 0.0,
             travel_direction: 1.0,
             flash_time_remaining: None,
+            speed,
         }
     }
 
@@ -119,9 +154,14 @@ impl Dial {
         self.segment_time = 0.0;
         self.is_wandering = drift_out_time.is_none();
         self.path = if self.is_wandering {
-            generate_random_dial_path(&self.in_range, self.in_range.middle(), drift_out_time)
+            generate_random_dial_path(
+                &self.in_range,
+                self.in_range.middle(),
+                drift_out_time,
+                self.speed,
+            )
         } else {
-            generate_random_dial_path(&self.in_range, self.value, drift_out_time)
+            generate_random_dial_path(&self.in_range, self.value, drift_out_time, self.speed)
         }
     }
 
@@ -228,9 +268,11 @@ fn generate_random_dial_path(
     range: &DialRange,
     start_value: f32,
     drift_out_time: Option<f32>,
+    speed: DialSpeed,
 ) -> VecDeque<PathSegment> {
-    const MIN_SEGMENT_TIME: f32 = SECONDS_PER_SEGMENT - SECONDS_PER_SEGMENT_DEVIATION;
-    const MAX_SEGMENT_TIME: f32 = SECONDS_PER_SEGMENT + SECONDS_PER_SEGMENT_DEVIATION;
+    let (seconds_per_segment, seconds_per_segment_deviation) = speed.into();
+    let min_segment_time: f32 = seconds_per_segment - seconds_per_segment_deviation;
+    let max_segment_time: f32 = seconds_per_segment + seconds_per_segment_deviation;
 
     let mut segments = VecDeque::new();
 
@@ -238,7 +280,7 @@ fn generate_random_dial_path(
         let mut time_remaining = drift_out_time;
         let mut start = range.random_in();
         let mut end = range.slightly_out(start);
-        let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
+        let duration = rand::thread_rng().gen_range(min_segment_time..=max_segment_time);
 
         let first_segment = PathSegment {
             start,
@@ -253,8 +295,8 @@ fn generate_random_dial_path(
 
         segments.push_back(first_segment);
 
-        while time_remaining > MAX_SEGMENT_TIME {
-            let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
+        while time_remaining > max_segment_time {
+            let duration = rand::thread_rng().gen_range(min_segment_time..=max_segment_time);
 
             let segment = PathSegment {
                 start,
@@ -282,7 +324,7 @@ fn generate_random_dial_path(
 
         for _ in 0..AFTER_RESET_PATH_SEGMENTS {
             let next_value = range.random_near(last_value);
-            let duration = rand::thread_rng().gen_range(MIN_SEGMENT_TIME..=MAX_SEGMENT_TIME);
+            let duration = rand::thread_rng().gen_range(min_segment_time..=max_segment_time);
 
             let segment = PathSegment {
                 start: last_value,

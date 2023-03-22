@@ -100,6 +100,7 @@ pub fn run() -> Result<()> {
                     Dial::new(
                         dial.name.clone(),
                         DialRange::new(dial.range_start, dial.range_end),
+                        dial.speed
                     )
                 })
                 .collect()
