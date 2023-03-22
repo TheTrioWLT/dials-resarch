@@ -36,8 +36,20 @@ marking its center. The green dot represents the ball,
 and it will move freely, unless controlled, throughout 
 the tracking frame never going off limits.
 
+### Dials 
+Below the Tracking Frame, dials are setup. One is able to 
+configure the numbers of dials that appear in the program
+via the [config](#config-setup) file. Each dial represents a trial
+where an alarm should go off. The alarm will go off once its dial
+has reached the time limit. It is possible to change alarm sounds
+based on the dial. Once an alarm goes off, the dial will wait for a key input
+and until then, its needle will remain still outside the dial's bound. The key input
+can be any key pressed after the alarm goes off, no matter if it's the wrong or right
+key. The right key has to be specified in the config file as well or default values
+will be used. 
 
 
+## Config Setup
 
 ## Authors
 [@Luke Newcomb](https://github.com/newcomb-luke)
