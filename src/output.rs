@@ -52,8 +52,8 @@ impl SessionOutput {
         print!("{CSV_HEADERS}");
 
         for t in 0..self.trial_reactions.len() {
-            write!(file, ", trial {} rmse", t).unwrap();
-            print!(", trial {} rmse", t);
+            write!(file, ", trial {} rmse", t + 1).unwrap();
+            print!(", trial {} rmse", t + 1);
         }
 
         writeln!(file).unwrap();
