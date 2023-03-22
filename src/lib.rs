@@ -268,6 +268,19 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                             let millis = last_alarm_time.elapsed().as_millis() as u32;
                             let current_rms_error = state.ball.current_rms_error();
 
+                            let (feedback_text, feedback_color) =
+                                if current_trial.correct_response_key == key {
+                                    (
+                                        current_trial.feedback_text_correct.as_deref(),
+                                        current_trial.feedback_color_correct.clone(),
+                                    )
+                                } else {
+                                    (
+                                        current_trial.feedback_text_incorrect.as_deref(),
+                                        current_trial.feedback_color_incorrect.clone(),
+                                    )
+                                };
+
                             let reaction = TrialReaction::new(
                                 state.current_trial_number,
                                 millis,
@@ -277,10 +290,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                             );
 
                             //Tell the state that a key was pressed after an alarm went off.
-                            state.tracking_state.blink(
-                                current_trial.feedback_text.as_deref(),
-                                current_trial.feedback_color.clone(),
-                            );
+                            state.tracking_state.blink(feedback_text, feedback_color);
 
                             let dial = state
                                 .dial_rows

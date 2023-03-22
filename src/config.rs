@@ -7,11 +7,17 @@ pub struct ConfigTrial {
     /// A case insensitive character
     pub correct_response_key: char,
 
-    /// Text to display after key press
-    pub feedback_text: Option<String>,
+    /// Text to display after a correct key was presseed
+    pub feedback_text_correct: Option<String>,
 
-    /// Changes the color of box per trial
-    pub feedback_color: Option<FeedbackColor>,
+    /// Text to display after an incorrect key was pressed
+    pub feedback_text_incorrect: Option<String>,
+
+    /// Changes the color of box corresponding to key pressed
+    pub feedback_color_correct: Option<FeedbackColor>,
+
+    /// Changes the color of box corresponding to key pressed
+    pub feedback_color_incorrect: Option<FeedbackColor>,
 
     /// The name of the dial which this trial is associated with
     /// [`Dial`]
@@ -123,8 +129,10 @@ impl Default for Config {
             trials: (1u32..=6)
                 .map(|i| ConfigTrial {
                     correct_response_key: char::from_digit(i, 10).unwrap(),
-                    feedback_text: Some(String::from("")),
-                    feedback_color: None,
+                    feedback_text_correct: Some(String::from("CORRECT")),
+                    feedback_text_incorrect: Some(String::from("INCORRECT")),
+                    feedback_color_correct: Some(FeedbackColor::Green),
+                    feedback_color_incorrect: Some(FeedbackColor::Red),
                     dial: format!("d{i}"),
                     alarm: format!("a{i}"),
                     alarm_time: 4.0,
