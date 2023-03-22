@@ -64,7 +64,6 @@ pub struct TrackingWidgetState {
 impl TrackingWidgetState {
     pub fn blink(&mut self, feedback_text: Option<&str>, respond_color: Option<FeedbackColor>) {
         self.key_detected = true;
-        dbg!(&respond_color);
         self.outline_color = respond_color.map_or(FRAME_BORDER_COLOR, |c| c.into());
         self.feedback_text = feedback_text.map(|s| s.to_string());
     }
