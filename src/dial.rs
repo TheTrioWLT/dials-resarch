@@ -22,13 +22,13 @@ const DIAL_FLASH_TIME: f32 = 0.5;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DialSpeed {
-    /// Slowest velocity [`BALL_SLOW_VELOCITY`]
+    /// Slowest velocity [`SLOW_SECONDS_PER_SEGMENT`]
     #[serde(rename = "slow")]
     Slow,
-    /// Medium velocity [`BALL_MEDIUM_VELOCITY`]
+    /// Medium velocity [`MEDIUM_SECONDS_PER_SEGMENT`]
     #[serde(rename = "medium")]
     Medium,
-    /// Fast velocity [`BALL_FAST_VELOCITY`]
+    /// Fast velocity [`FAST_SECONDS_PER_SEGMENT`]
     #[serde(rename = "fast")]
     Fast,
 }
