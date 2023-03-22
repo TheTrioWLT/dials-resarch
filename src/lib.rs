@@ -170,6 +170,8 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
     // The last Instant that a trial was run, so that the time can be measured relative to
     // trial activations.
     let mut last_trial_time = Instant::now();
+    // The last instant that an alarm went off, used to find trial response times
+    let mut last_alarm_time = Instant::now();
 
     // Outputs the type of device that is detected by Gilrs.
     // If information is not recognized by library then it will output the default OS provided name
@@ -217,6 +219,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
 
                         state.alarm_active = true;
                         audio.play(&current_trial.dial, &alarm.audio_path).unwrap();
+                        last_alarm_time = Instant::now();
                     }
                 }
 
@@ -262,7 +265,7 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                 if let Some(key) = state.pressed_key.take() {
                     if let Some(current_trial) = state.trials.first() {
                         if last_trial_time.elapsed().as_secs_f32() > current_trial.alarm_time {
-                            let millis = last_trial_time.elapsed().as_millis() as u32;
+                            let millis = last_alarm_time.elapsed().as_millis() as u32;
                             let current_rms_error = state.ball.current_rms_error();
 
                             let reaction = TrialReaction::new(
@@ -285,6 +288,9 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                                 .flat_map(|r| r.iter_mut())
                                 .find(|d| d.name() == &current_trial.dial)
                                 .unwrap();
+
+                            // Flash the dial needle
+                            dial.flash();
 
                             audio.stop(&current_trial.dial);
                             dial.reset(None);
