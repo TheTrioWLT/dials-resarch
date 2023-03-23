@@ -245,10 +245,10 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                     if let gilrs::ev::EventType::AxisChanged(axis, amount, _) = event {
                         match axis {
                             gilrs::ev::Axis::LeftStickX => {
-                                joystick_input_axes[1] = -amount;
+                                joystick_input_axes[0] = amount;
                             }
                             gilrs::ev::Axis::LeftStickY => {
-                                joystick_input_axes[0] = -amount;
+                                joystick_input_axes[1] = amount;
                             }
                             _ => {}
                         }
