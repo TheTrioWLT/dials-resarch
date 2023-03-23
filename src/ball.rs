@@ -42,6 +42,16 @@ pub enum BallVelocity {
     Fast,
 }
 
+impl From<BallVelocity> for f32 {
+    fn from(value: BallVelocity) -> Self {
+        match value {
+            BallVelocity::Slow => BALL_SLOW_VELOCITY,
+            BallVelocity::Medium => BALL_MEDIUM_VELOCITY,
+            BallVelocity::Fast => BALL_FAST_VELOCITY,
+        }
+    }
+}
+
 pub struct Ball {
     /// Current position in the screen.
     ///
@@ -73,13 +83,9 @@ impl Ball {
     pub fn new(
         random_direction_change_time_min: f32,
         random_direction_change_time_max: f32,
-        velocity_meter: BallVelocity,
+        ball_velocity: BallVelocity,
     ) -> Self {
-        let length = match velocity_meter {
-            BallVelocity::Slow => BALL_SLOW_VELOCITY,
-            BallVelocity::Medium => BALL_MEDIUM_VELOCITY,
-            BallVelocity::Fast => BALL_FAST_VELOCITY,
-        };
+        let length: f32 = ball_velocity.into();
 
         let mut rng = rand::thread_rng();
 

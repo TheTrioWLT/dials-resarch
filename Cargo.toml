@@ -14,9 +14,9 @@ codegen-units = 1
 [dependencies]
 anyhow = "1.0.63"
 derive-new = "0.5.9"
-eframe = "0.21.0"
+eframe = "0.21.3"
 env_logger = "0.10.0"
-gilrs = {git = "https://gitlab.com/gilrs-project/gilrs", rev = "0c84b5d6fda38ba6b2d0389334704f1bb8e21cd5"}
+gilrs = "0.10.1"
 hound = "3.4"
 lazy_static = "1.4.0"
 log = "0.4.17"
