@@ -17,7 +17,8 @@ const CROSSHAIR_COLOR: Color32 = Color32::WHITE;
 
 const BALL_RADIUS: f32 = 0.03;
 
-pub const TEXT_FLASH_TIME: f32 = 0.8;
+///For how long will the feedback be displayed for
+pub const FEEDBACK_FLASH_TIME: f32 = 1.2;
 
 const BALL_COLOR: egui::Color32 = egui::Color32::LIGHT_GREEN;
 
@@ -71,7 +72,7 @@ impl TrackingWidgetState {
     pub fn update(&mut self, time: f32) {
         if self.key_detected {
             self.time_since += time;
-            if self.time_since >= TEXT_FLASH_TIME {
+            if self.time_since >= FEEDBACK_FLASH_TIME {
                 self.time_since = 0.0;
                 self.key_detected = false;
                 self.outline_color = FRAME_BORDER_COLOR;
