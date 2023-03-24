@@ -36,6 +36,18 @@ marking its center. The green dot represents the ball,
 and it will move freely, unless controlled, throughout 
 the tracking frame never going off limits.
 
+### Ball Movement
+The Ball on the screen, the little green dot, will move freely
+around the Tracking Frame. It will bounce back every time 
+it hits the walls. Its direction will change randomly at 
+given intervals. This intervals can be customized in the 
+[config](#config-setup) file. A user may control the ball 
+in 2 ways. One is by using the arrow keys, and the most 
+preferred one is the joystick input where the user may 
+use a joystick. **BEWARE!!** Not all joysticks have been 
+tested, we cannot guarantee that all joysticks can work.
+
+
 ### Dials 
 Below the Tracking Frame, dials are setup. One is able to 
 configure the numbers of dials that appear in the program
@@ -50,6 +62,41 @@ will be used.
 
 
 ## Config Setup
+This section aims to help understand how to properly use 
+the config file used in the program. Is important to know
+that syntax and typos are important in this config as the 
+extension of the file is **toml**. I will not explain 
+how toml works, I recommend visiting [toml_template](https://toml.io/en/)
+for any questions on why something is the way it is. 
+
+>A config file will be automatically made if no config file 
+is found when the program is runned.
+
+Make sure to have your config file with named as such **config_file.toml**
+
+
+### Input Mode
+This is how one specifies the type of input the program should use.
+It will **NOT** detect it automatically.
+
+Input Mode should be the first line of the config file, and suggest
+leaving it like that to not have any issues. 
+
+If the config file is made by the program, it will then 
+choose keyboard as the default input mode. Something 
+like this
+```toml
+input_mode = "keyboard"
+```
+
+
+To change the input mode to joystick it will be very similar
+to keyboard. 
+
+```toml
+input_mode = "joystick"
+```
+
 
 ## Authors
 [@Luke Newcomb](https://github.com/newcomb-luke)
