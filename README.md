@@ -27,7 +27,7 @@ research. However, the program may be used by any audience.
 ## User Interface System
 This section shows how the UI of the program looks like. 
 
-![UI system](../dials-research/extras/ui_system.png)
+![UI system](extras/ui_system.png)
 
 ### Tracking Frame 
 The main interaction of the program is in the white outlined
@@ -96,6 +96,187 @@ to keyboard.
 ```toml
 input_mode = "joystick"
 ```
+Input Mode should be only variable that is outside of a section.
+What do I mean by section? We will see just now.
+
+### Ball Section
+In toml, one is able to specify a section and separate 
+variables that will only go into that section. That is 
+how the program divides specific information that is important 
+to independent components within the program. For example, the ball. 
+The program allows for some flexibility in order to change 
+some behaviors of how the ball should act.  
+
+To specify the Ball Section the config file must have this. 
+```toml
+[ball]
+```
+
+This is the start of the section, now the variables we put 
+after this call correspond to the ball.
+
+The ball only uses 3 variables in total. 2 variables are 
+for the time interval for when the ball should change velocities. The last 
+variable is to specify the speed. 
+
+#### Time Interval 
+```toml
+random_direction_change_time_min = 1.0
+random_direction_change_time_max = 8.0
+```
+As specified before, this two variables are the minimum and 
+maximum values for the interval of when the ball will change 
+its velocity. How it works is that when the program runs, the ball 
+may change its velocity any time from, in this example, 1
+second and 8 seconds since the last change of velocity. Always
+being random at every iteration. 
+
+
+#### Speed 
+```toml
+ball_velocity = "slow"
+```
+The above code shows how to specify the speed of the ball. 
+For now the program only supports 3 types of velocity, slow,
+medium, and fast. One may not be able to change the values that 
+correspond to slow, medium or fast. 
+
+When writing the velocities make sure to always do in lower case. 
+
+```toml
+ball_velocity = "medium"
+```
+```toml
+ball_velocity = "fast"
+```
+
+#### Example 
+This is how a good ball section would look like. 
+
+
+![Ball Config](extras/ball_template.png)
+
+### Trials Setup
+This is where it will get a bit confusing 
+for those who may not have experience in toml files. I promise
+not to make it worst.
+
+When setting up the trials one has to do a few things. First, 
+specify to toml that we want to make a trial. This is similar 
+to what we did in the [Ball Setup](#ball-section) section, just
+with a little difference. The program is meant to work with 
+multiple trials. To save someone to having to write a new 
+section every time for a new trial like: 
+``` toml
+[trial1]
+[trial2]
+[trial3]
+```
+The config file writes the multiple trials section names 
+in list syntax, or array for my fellow programmers. 
+Let me stop and show. 
+
+``` toml 
+[[trial]]
+[[trial]]
+[[trial]]
+```
+The above code believe it or not does the same as the previous one 
+with trial1, 2 and 3. But in this case one does not need to put
+the numbers. Now is **IMPORTANT** to know that the order matters. This
+matters for understanding the output file after the program runs. 
+The first **[[trial]]** represents **trial1**. 
+
+**DO NOTICE** the extra square brackets [].
+
+Now one can just modify every trial a different way. So lets 
+go into what variables are needed for every trial. 
+
+Here is what a normal configuration of a single trial 
+would look like, I would go into depth on what every variable 
+means. 
+
+
+![Trial Config](extras/trial_template.png)
+
+#### Correct Key 
+The **correct_response_key** corresponds to what the name 
+suggest, the right key to press for that trial. 
+The keys can be any keybind in a keyboard that is either 
+a normal or letter. Special characters are not supported.
+
+Another example: 
+
+```toml 
+correct_response_key = "F"
+```
+
+But not this 
+```toml 
+correct_response_key = "$"
+```
+
+**IMPORTANT** If an invalid correct key is given. The program 
+will still keep running, but it will just not allow the 
+input of the correct key, only wrongs. 
+
+
+#### Feedback Output 
+
+The program also has feedback for the user who is running the 
+trials. This feedback is to allow the user to know if they 
+pressed the correct key. 
+
+There are two types of feedback: text, and frame color. Both
+of this can be customized as well. This was done with the 
+purpose of playing with the tester's mind to see if they 
+should trust the system. 
+
+##### Feedback Text 
+
+![Feedback Text](extras/feedback_text_template.png)
+
+Each variable represents their behavior to their respective 
+action. For example **feedback_text_correct** will only display
+it's text if the correct key is pressed. Or, the other way arround 
+if incorrect key is pressed.
+
+As stated before, this two are customizable. The text can be 
+anything, and it does not have to be all capitals. 
+
+We recommend to not have the texts too long though. The 
+time the texts will be in screen is about 1 second.
+
+##### Feedback Color 
+
+![Feedback Color](extras/feedback_color_template.png)
+
+These two variables change the color of the Tracking Frame, in 
+other words the white square. Just like the text, the colors 
+are customizable but not as free. There are only 3 colors to 
+choose from, "red", "green", and "blue". White is not an option 
+as it's the default color. 
+
+**DO NOTICE** the colors must be in lower case. 
+
+##### Dial Name 
+```toml 
+dial = "d6"
+```
+This corresponds to the dial that will be attached to the 
+trial. The name is not important, but what it is important 
+is that the name must exist within a dial. To establish a dial's 
+name go to [Dial Setup](#dial-setup) section. Just remember 
+this two need to match in order to work properly.
+
+
+### Dial Setup
+
+
+
+
+
+
 
 
 ## Authors
