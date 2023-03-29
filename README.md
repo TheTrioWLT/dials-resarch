@@ -269,6 +269,34 @@ is that the name must exist within a dial. To establish a dial's
 name go to [Dial Setup](#dial-setup) section. Just remember 
 this two need to match in order to work properly.
 
+##### Alarm settings
+![alarm-settings-image](extras/alarm_config_template.png)
+
+The last two variables corresponds to how are alarms setup-ed
+for each trial. 
+
+First is which alarm is the trial going to use. We link them 
+by names. 
+```toml
+alarm = "a1"
+```
+
+The alarm name can be anything, but it must be an existing 
+alarm name, we late show how to set up an alarm. 
+
+```toml
+alarm_time = 4.0
+```
+
+Corresponds to the time, in seconds, we want the alarm 
+in the trial to go off at. This time runs after an alarm 
+has gone off. Meaning that other trial's alarms will not 
+go off until one is activated. This is except the first trial. 
+
+It is important to keep the same syntax for the time. 
+Keep it decimal even if it's a whole number. 
+
+
 
 ### Dial Setup
 
