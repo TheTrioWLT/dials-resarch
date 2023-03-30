@@ -150,7 +150,7 @@ ball_velocity = "medium"
 ball_velocity = "fast"
 ```
 
-#### Example 
+##### Example 
 This is how a good ball section would look like. 
 
 
@@ -199,7 +199,7 @@ means.
 
 ![Trial Config](extras/trial_template.png)
 
-#### Correct Key 
+##### Correct Key 
 The **correct_response_key** corresponds to what the name 
 suggest, the right key to press for that trial. 
 The keys can be any keybind in a keyboard that is either 
@@ -221,7 +221,7 @@ will still keep running, but it will just not allow the
 input of the correct key, only wrongs. 
 
 
-#### Feedback Output 
+##### Feedback Output 
 
 The program also has feedback for the user who is running the 
 trials. This feedback is to allow the user to know if they 
@@ -299,11 +299,92 @@ Keep it decimal even if it's a whole number.
 
 
 ### Dial Setup
+We gonna introduce some sort of toml logic. We have introduce 
+already how to make some sort of list with sections like 
+```toml 
+[[trials]]
+```
+Well there is this thing we can do where can modify the 
+list as well within toml. We don't do it for trials as we don't 
+necessarily need to. But for this section is different. 
+
+The program supports customized amount of dials, I won't say infinite 
+as I don't recommend using too many as it will probably make the dials 
+small. The way the program organizes these dials is by rows. A row 
+may have multiple dials. I won't into detail exactly how toml makes it 
+work. But the gist of it is that one can make multiple rows after 
+making the first call. Something like this 
+
+##### Row System
+```toml 
+[[row]]
+```
+
+This will make the list where we will store the dial 
+in the first row. It does not have to be called *row* 
+specifically, but in order to make sense is better 
+if it's called that. Now to add and make a dial into 
+this row is by doing this format. 
+
+![Dial-Template](extras/dial_setup_config.png)
+
+The image above shows the proper way to setup a dial within 
+a row. First notice the very first line of the image. 
+```toml 
+[[row.dial]]
+```
+This is the format to use when making a new dial within the row. Be ware 
+this just adds one dial to row. If we wanted two dials within row we would 
+have to add a second *[[row.dial]]* with the proper setup. 
+
+Now let's break down what the other components are to properly 
+setup a dial. 
+
+##### Name and Speed
+
+First let's mention the variables that speak for themselves. The 
+**name** variable is to specify the name of the dial we are setting up. 
+Make sure this name is the same used when linking a trial to 
+this dial. We **HIGHLY RECOMMEND** to use the format of using 
+"d" as the name initializer to establish is a dial. Then use a number 
+to rank the dial. This is to make it easier for the program 
+to parse it. 
+
+The **speed** variable is like the speed of ball. There are only 
+3 options for it, **slow**, **medium** , and **fast**. We recommend 
+using **slow**, and **medium** to allow for an easier follow of 
+the needle in the dial. If what you prefer is dials moving fast so 
+is harder to track and **fast** is for you.
+
+**IMPORTANT** 
+
+Make sure that the order of the variables stays the same. Meaning name 
+is the first variable called and speed is the last.
 
 
+##### Dial Range
+Dial Range corresponds to the green area of the dial. This range 
+goes from 0-10,000. A needle will move in the range area until 
+its' corresponding dial's alarm is ready to go off. Once the alarm 
+of the dial is ready to go off, the needle will make it's way to 
+outside the range. 
 
+```toml 
+range_start = 200.0
+```
+This variable specifies where to start the range from. The start is 
+not bounded to be 0.0, it can start from anywhere. Also, keep in mind 
+the units of the number. The number you use must be in decimal syntax 
+and not just whole number. 
 
+```toml 
+range_end = 4200.0
+```
 
+This varibale specifies where to end the range. Just like the range_start, 
+the range_end is not bounded by anything. It can be any value, even the 
+same as the start value. Notice though that it needs to be 
+the same type of units of decimal. 
 
 
 
