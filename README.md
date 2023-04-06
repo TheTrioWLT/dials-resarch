@@ -381,11 +381,73 @@ and not just whole number.
 range_end = 4200.0
 ```
 
-This varibale specifies where to end the range. Just like the range_start, 
+This variable specifies where to end the range. Just like the range_start, 
 the range_end is not bounded by anything. It can be any value, even the 
 same as the start value. Notice though that it needs to be 
 the same type of units of decimal. 
 
+##### Making a new row
+
+The above guide helped make a single row of dials. Well just one 
+dial at the moment, if we wanted to make more dials we would 
+just repeat the steps once again. 
+
+But now lets add a second row. How would we do this? It is
+the same way as making a new row. We would call 
+```toml
+[[row]]
+```
+
+Then repeat the steps to make dials within the row. 
+Here is an example on how the config file look like for this. 
+
+![Making new rows](extras/making_new_row.png)
+
+The image above shows the creation of 2 rows of dials. 
+The first call of [[row]] marks the start of the first row, 
+and we proceed to make 3 dials within the row. Then we call 
+[[row]] once more in order to make the second row, and make
+2 dials within the row. 
+
+#### Alarms
+
+Last but not least we will show how to configure the use of alarms. 
+
+![alarm_image](extras/alarm_template.png)
+
+Making an alarm is very simple as the image above shows. One 
+establishes a name, this is **a1** in this case. Then we specify 
+a path to the audio file we want the alarm to display. It is 
+important to know that path matters. 
+
+For example, if the audio files are within the same directory/folder 
+as the program then the name should be only thing written. 
+But in the case that you want to have the alarms within a folder,
+then you need to write the whole path to the audio file you are 
+trying to use. Something like 
+
+```python
+audio_path = "folder/alarm.wav"
+```
+In this example the program will look into a folder with the name 
+"folder" for the alarm.wav
+
+**IMPORTANT** 
+Notice that to start an alarm we use the syntax **[[alarms]]**. This 
+allows for the creation of multiple alarms. Just how we did with 
+rows.
+
+
+## Final Words
+If at any time there are some issues within the program 
+please be sure to make a Github Issues and one of the authors 
+should respond at their earliest convenience. 
+
+Keep in mind this program was done with the purpose of research 
+and not as a game or typical software to use. So we as the 
+authors won't be working on this software no more unless if 
+it's with the purpose of making research much easier to make, and 
+it comes directly from the University Human Factor's department.
 
 
 ## Authors
