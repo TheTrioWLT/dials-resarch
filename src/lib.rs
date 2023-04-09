@@ -358,7 +358,7 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
         .flat_map(|r| r.dials.iter().map(|d| &d.name))
         .collect();
     // Loops through each trial and checks if its corresponding alarm exists in the map
-    for trial in &config.trials {
+    for (trial_num, trial) in config.trials.iter().enumerate() {
         let alarm_name = &trial.alarm;
         if !alarm_names.contains(&alarm_name) {
             let message =
@@ -379,6 +379,22 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
         if !dial_names.contains(&dial_name) {
             let message =
                 format!("Dial `{dial_name}` is missing!\nAvailable dials are: {dial_names:?}");
+
+            dialog_popup::show(
+                "Configuration Error",
+                "Invalid configuration",
+                message.clone(),
+            )
+            .unwrap();
+
+            bail!(message);
+        }
+
+        if !trial.correct_response_key.is_alphanumeric() {
+            let message = format!(
+                "Trial #{} specifies response key `{}`, which is invalid\nAvailable keys are: A-Z and 0-9",
+                trial_num, trial.correct_response_key
+            );
 
             dialog_popup::show(
                 "Configuration Error",
