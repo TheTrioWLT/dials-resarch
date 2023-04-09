@@ -389,6 +389,21 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
 
             bail!(message);
         }
+
+        if !trial.correct_response_key.is_alphanumeric() {
+            let message = format!(
+                "Trial `{}` specifies key `{}` which is invalid\nAvailable keys are: A-Z and 0-9"
+            );
+
+            dialog_popup::show(
+                "Configuration Error",
+                "Invalid configuration",
+                message.clone(),
+            )
+            .unwrap();
+
+            bail!(message);
+        }
     }
 
     Ok(())
