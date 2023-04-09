@@ -358,7 +358,7 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
         .flat_map(|r| r.dials.iter().map(|d| &d.name))
         .collect();
     // Loops through each trial and checks if its corresponding alarm exists in the map
-    for trial in &config.trials {
+    for (trial_num, trial) in config.trials.iter().enumerate() {
         let alarm_name = &trial.alarm;
         if !alarm_names.contains(&alarm_name) {
             let message =
@@ -392,7 +392,8 @@ fn validate_config(config: &mut config::Config) -> Result<()> {
 
         if !trial.correct_response_key.is_alphanumeric() {
             let message = format!(
-                "Trial `{}` specifies key `{}` which is invalid\nAvailable keys are: A-Z and 0-9"
+                "Trial #{} specifies response key `{}`, which is invalid\nAvailable keys are: A-Z and 0-9",
+                trial_num, trial.correct_response_key
             );
 
             dialog_popup::show(
