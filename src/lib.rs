@@ -303,7 +303,6 @@ fn model(state: &Mutex<AppState>, audio: AudioManager) {
                                 .flat_map(|r| r.iter_mut())
                                 .find(|d| d.name() == &current_trial.dial)
                                 .unwrap();
-
                             // Flash the dial needle
                             dial.flash();
 
